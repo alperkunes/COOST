@@ -1,0 +1,25 @@
+export const permissionKeys = [
+  'finance.read',
+  'finance.write',
+  'suppliers.read',
+  'suppliers.write',
+  'suppliers.pay',
+  'purchasing.read',
+  'purchasing.write',
+  'inventory.read',
+  'inventory.write',
+  'inventory.count',
+  'inventory.adjust',
+  'checks.read',
+  'checks.write',
+  'staff.read',
+  'staff.manage',
+  'assistant.read',
+  'assistant.execute',
+  'tenant.settings.read',
+  'tenant.settings.manage',
+  'tenant.users.read',
+  'tenant.users.manage',
+] as const
+
+export type PermissionKey = (typeof permissionKeys)[number]
