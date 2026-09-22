@@ -16,6 +16,7 @@ export const permissionKeys = [
   'staff.manage',
   'assistant.read',
   'assistant.execute',
+  'audit.read',
   'tenant.settings.read',
   'tenant.settings.manage',
   'tenant.users.read',
