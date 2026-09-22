@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  membershipInvitationSchema,
+  membershipSchema,
   tenantContextSchema,
   tenantSchema,
 } from '../core/tenant/tenantSchemas'
@@ -33,6 +35,35 @@ describe('tenant foundation', () => {
         createdAt: '2026-09-22T15:00:00.000Z',
       }),
     ).toThrow()
+  })
+
+  it('does not model invitations as memberships', () => {
+    expect(() =>
+      membershipSchema.parse({
+        id: '44444444-4444-4444-8444-444444444444',
+        tenantId,
+        userId,
+        status: 'INVITED',
+        roleIds: [],
+      }),
+    ).toThrow()
+  })
+
+  it('accepts a pending membership invitation', () => {
+    const invitation = membershipInvitationSchema.parse({
+      id: '55555555-5555-4555-8555-555555555555',
+      tenantId,
+      email: 'owner@example.com',
+      status: 'PENDING',
+      invitedByUserId: userId,
+      roleIds: ['66666666-6666-4666-8666-666666666666'],
+      expiresAt: '2026-09-29T15:00:00.000Z',
+      acceptedAt: null,
+      createdAt: '2026-09-22T15:00:00.000Z',
+      updatedAt: '2026-09-22T15:00:00.000Z',
+    })
+
+    expect(invitation.status).toBe('PENDING')
   })
 
   it('evaluates enabled modules and permissions from tenant context', () => {
