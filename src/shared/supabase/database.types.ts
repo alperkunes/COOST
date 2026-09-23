@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_logs: {
@@ -58,6 +83,160 @@ export type Database = {
           },
           {
             foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_accounts: {
+        Row: {
+          account_type: string
+          created_at: string
+          currency_code: string
+          id: string
+          location_id: string | null
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          created_at?: string
+          currency_code?: string
+          id?: string
+          location_id?: string | null
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          created_at?: string
+          currency_code?: string
+          id?: string
+          location_id?: string | null
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_accounts_location_fk"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "finance_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_entries: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          id: string
+          tenant_id: string
+          transaction_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          tenant_id: string
+          transaction_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_entries_account_fk"
+            columns: ["account_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "finance_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_entries_transaction_fk"
+            columns: ["transaction_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+        ]
+      }
+      finance_transactions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          id: string
+          location_id: string | null
+          occurred_at: string
+          source_id: string | null
+          source_type: string | null
+          tenant_id: string
+          transaction_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          id?: string
+          location_id?: string | null
+          occurred_at: string
+          source_id?: string | null
+          source_type?: string | null
+          tenant_id: string
+          transaction_type: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          location_id?: string | null
+          occurred_at?: string
+          source_id?: string | null
+          source_type?: string | null
+          tenant_id?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_location_fk"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -603,6 +782,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
