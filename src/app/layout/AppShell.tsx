@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Landmark,
   LayoutDashboard,
+  LogOut,
   MessageCircle,
   PackageOpen,
   ReceiptText,
@@ -15,6 +16,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { appNavigation } from '../../core/navigation/appNavigation'
+import { useAuth } from '../../shared/auth/useAuth'
+import { useTenant } from '../../shared/tenant/useTenant'
 
 const navigationIcons: Record<string, LucideIcon> = {
   '/': LayoutDashboard,
@@ -28,6 +31,15 @@ const navigationIcons: Record<string, LucideIcon> = {
 }
 
 export function AppShell() {
+  const { signOut } = useAuth()
+  const { tenantName } = useTenant()
+
+  const handleSignOut = () => {
+    void signOut().catch((error) => {
+      console.error('Failed to sign out:', error)
+    })
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -46,7 +58,8 @@ export function AppShell() {
               <span className="nav-section-title">{section.label}</span>
 
               {section.items.map((item) => {
-                const Icon = navigationIcons[item.path] ?? BadgeDollarSign
+                const Icon =
+                  navigationIcons[item.path] ?? BadgeDollarSign
 
                 return (
                   <NavLink
@@ -77,15 +90,26 @@ export function AppShell() {
           <button className="workspace-selector" type="button">
             <span>
               <small>AKTİF İŞLETME</small>
-              <strong>Demo Workspace</strong>
+              <strong>{tenantName ?? 'İşletme'}</strong>
             </span>
 
             <ChevronDown size={17} />
           </button>
 
-          <div className="topbar-status">
-            <CheckCircle2 size={16} />
-            <span>Sistem hazır</span>
+          <div className="topbar-actions">
+            <div className="topbar-status">
+              <CheckCircle2 size={16} />
+              <span>Sistem hazır</span>
+            </div>
+
+            <button
+              className="sign-out-button"
+              onClick={handleSignOut}
+              type="button"
+            >
+              <LogOut size={16} />
+              <span>Çıkış</span>
+            </button>
           </div>
         </header>
 

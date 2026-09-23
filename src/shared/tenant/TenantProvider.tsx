@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -22,162 +22,125 @@ type TenantProviderProps = {
   children: ReactNode
 }
 
+function getStoredTenantId() {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return window.localStorage.getItem(
+    ACTIVE_TENANT_STORAGE_KEY,
+  )
+}
+
 export function TenantProvider({
   children,
 }: TenantProviderProps) {
   const { user, loading: authLoading } = useAuth()
 
-  const [tenantIds, setTenantIds] = useState<string[]>([])
-  const [tenantId, setTenantId] = useState<string | null>(null)
-  const [context, setContext] =
-    useState<TenantContext | null>(null)
-  const [membershipsLoading, setMembershipsLoading] =
-    useState(true)
-  const [contextLoading, setContextLoading] =
-    useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [selectedTenantId, setSelectedTenantId] =
+    useState<string | null>(getStoredTenantId)
 
-  useEffect(() => {
-    let cancelled = false
+  const membershipsQuery = useQuery({
+    queryKey: ['memberships', user?.id],
+    enabled: Boolean(user) && !authLoading,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('memberships')
+        .select('tenant_id')
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: true })
 
-    if (authLoading) {
-      setMembershipsLoading(true)
-      return () => {
-        cancelled = true
+      if (error) {
+        throw error
       }
-    }
 
-    if (!user) {
-      setTenantIds([])
-      setTenantId(null)
-      setContext(null)
-      setError(null)
-      setMembershipsLoading(false)
+      return Array.from(
+        new Set(
+          data.map(
+            (membership) => membership.tenant_id,
+          ),
+        ),
+      )
+    },
+  })
 
-      return () => {
-        cancelled = true
+  const tenantIds = useMemo(
+    () =>
+      user
+        ? membershipsQuery.data ?? []
+        : [],
+    [user, membershipsQuery.data],
+  )
+
+  const tenantId =
+    selectedTenantId &&
+    tenantIds.includes(selectedTenantId)
+      ? selectedTenantId
+      : tenantIds[0] ?? null
+
+  const tenantQuery = useQuery({
+    queryKey: ['tenant', user?.id, tenantId],
+    enabled: Boolean(user && tenantId),
+    queryFn: async () => {
+      if (!tenantId) {
+        throw new Error('Tenant id is required')
       }
-    }
 
-    setMembershipsLoading(true)
-    setError(null)
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .eq('id', tenantId)
+        .single()
 
-    void supabase
-      .from('memberships')
-      .select('tenant_id')
-      .eq('status', 'ACTIVE')
-      .order('created_at', { ascending: true })
-      .then(({ data, error: membershipsError }) => {
-        if (cancelled) {
-          return
-        }
+      if (error) {
+        throw error
+      }
 
-        if (membershipsError) {
-          setTenantIds([])
-          setTenantId(null)
-          setContext(null)
-          setError(membershipsError.message)
-          setMembershipsLoading(false)
-          return
-        }
+      return data
+    },
+  })
 
-        const ids = Array.from(
-          new Set(data.map((membership) => membership.tenant_id)),
+  const contextQuery = useQuery<TenantContext>({
+    queryKey: [
+      'tenant-context',
+      user?.id,
+      tenantId,
+    ],
+    enabled: Boolean(user && tenantId),
+    queryFn: async () => {
+      if (!tenantId) {
+        throw new Error('Tenant id is required')
+      }
+
+      const { data, error } = await supabase.rpc(
+        'get_my_tenant_context',
+        {
+          p_tenant_id: tenantId,
+        },
+      )
+
+      if (error) {
+        throw error
+      }
+
+      if (data === null) {
+        throw new Error(
+          'The selected tenant is not available for this user.',
         )
-
-        setTenantIds(ids)
-
-        const storedTenantId =
-          window.localStorage.getItem(
-            ACTIVE_TENANT_STORAGE_KEY,
-          )
-
-        const nextTenantId =
-          storedTenantId && ids.includes(storedTenantId)
-            ? storedTenantId
-            : ids[0] ?? null
-
-        setTenantId(nextTenantId)
-
-        if (nextTenantId) {
-          window.localStorage.setItem(
-            ACTIVE_TENANT_STORAGE_KEY,
-            nextTenantId,
-          )
-        } else {
-          window.localStorage.removeItem(
-            ACTIVE_TENANT_STORAGE_KEY,
-          )
-          setContext(null)
-        }
-
-        setMembershipsLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [authLoading, user])
-
-  useEffect(() => {
-    let cancelled = false
-
-    if (!user || !tenantId) {
-      setContext(null)
-      setContextLoading(false)
-
-      return () => {
-        cancelled = true
       }
-    }
 
-    setContextLoading(true)
-    setError(null)
+      const parsed =
+        tenantContextSchema.safeParse(data)
 
-    void supabase
-      .rpc('get_my_tenant_context', {
-        p_tenant_id: tenantId,
-      })
-      .then(({ data, error: contextError }) => {
-        if (cancelled) {
-          return
-        }
+      if (!parsed.success) {
+        throw new Error(
+          'The tenant context returned by the server is invalid.',
+        )
+      }
 
-        if (contextError) {
-          setContext(null)
-          setError(contextError.message)
-          setContextLoading(false)
-          return
-        }
-
-        if (data === null) {
-          setContext(null)
-          setError(
-            'The selected tenant is not available for this user.',
-          )
-          setContextLoading(false)
-          return
-        }
-
-        const parsed = tenantContextSchema.safeParse(data)
-
-        if (!parsed.success) {
-          setContext(null)
-          setError(
-            'The tenant context returned by the server is invalid.',
-          )
-          setContextLoading(false)
-          return
-        }
-
-        setContext(parsed.data)
-        setContextLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [tenantId, user])
+      return parsed.data
+    },
+  })
 
   const selectTenant = useCallback(
     (nextTenantId: string) => {
@@ -192,19 +155,38 @@ export function TenantProvider({
         nextTenantId,
       )
 
-      setTenantId(nextTenantId)
+      setSelectedTenantId(nextTenantId)
     },
     [tenantIds],
   )
+
+  const membershipsLoading =
+    Boolean(user) && membershipsQuery.isPending
+
+  const tenantLoading =
+    Boolean(user && tenantId) &&
+    tenantQuery.isPending
+
+  const contextLoading =
+    Boolean(user && tenantId) &&
+    contextQuery.isPending
+
+  const error =
+    membershipsQuery.error?.message ??
+    tenantQuery.error?.message ??
+    contextQuery.error?.message ??
+    null
 
   const value = useMemo<TenantProviderValue>(
     () => ({
       tenantIds,
       tenantId,
-      context,
+      tenantName: tenantQuery.data?.name ?? null,
+      context: contextQuery.data ?? null,
       loading:
         authLoading ||
         membershipsLoading ||
+        tenantLoading ||
         contextLoading,
       error,
       selectTenant,
@@ -212,10 +194,12 @@ export function TenantProvider({
     [
       authLoading,
       membershipsLoading,
+      tenantLoading,
       contextLoading,
       tenantIds,
       tenantId,
-      context,
+      tenantQuery.data,
+      contextQuery.data,
       error,
       selectTenant,
     ],

@@ -4,6 +4,7 @@ import type { TenantContext } from '../../core/tenant/tenantSchemas'
 export type TenantProviderValue = {
   tenantIds: string[]
   tenantId: string | null
+  tenantName: string | null
   context: TenantContext | null
   loading: boolean
   error: string | null

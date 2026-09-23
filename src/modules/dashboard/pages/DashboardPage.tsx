@@ -10,10 +10,10 @@ export function DashboardPage() {
     <section className="dashboard-page">
       <div className="page-heading">
         <span className="eyebrow">COOST</span>
-        <h1>İşletme Özeti</h1>
+        <h1>Ä°ÅŸletme Ã–zeti</h1>
         <p>
-          Finans, operasyon ve yönetim sinyalleri burada tek bir noktada
-          birleşecek.
+          Finans, operasyon ve yÃ¶netim sinyalleri burada tek bir noktada
+          birleÅŸecek.
         </p>
       </div>
 
@@ -24,9 +24,9 @@ export function DashboardPage() {
           </div>
 
           <div className="card-content">
-            <span>BUGÜN</span>
+            <span>BUGÃœN</span>
             <strong>Foundation aktif</strong>
-            <p>COOST uygulama kabuğu çalışıyor.</p>
+            <p>COOST uygulama kabuÄŸu Ã§alÄ±ÅŸÄ±yor.</p>
           </div>
 
           <button className="card-action" type="button" aria-label="Detaya git">
@@ -40,9 +40,9 @@ export function DashboardPage() {
           </div>
 
           <div className="card-content">
-            <span>ASİSTAN</span>
-            <strong>Hazırlanıyor</strong>
-            <p>Karar ve aksiyon motorları sonraki aşamalarda bağlanacak.</p>
+            <span>ASÄ°STAN</span>
+            <strong>HazÄ±rlanÄ±yor</strong>
+            <p>Karar ve aksiyon motorlarÄ± sonraki aÅŸamalarda baÄŸlanacak.</p>
           </div>
 
           <button className="card-action" type="button" aria-label="Detaya git">
@@ -56,9 +56,9 @@ export function DashboardPage() {
           </div>
 
           <div className="card-content">
-            <span>SİSTEM</span>
-            <strong>Temiz başlangıç</strong>
-            <p>Tenant, yetki ve audit altyapısı henüz eklenmedi.</p>
+            <span>SÄ°STEM</span>
+            <strong>Temiz baÅŸlangÄ±Ã§</strong>
+            <p>Tenant, yetki ve audit altyapÄ±sÄ± henÃ¼z eklenmedi.</p>
           </div>
 
           <button className="card-action" type="button" aria-label="Detaya git">
