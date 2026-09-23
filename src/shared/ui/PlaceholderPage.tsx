@@ -7,7 +7,7 @@ export function PlaceholderPage() {
     <section className="placeholder-page">
       <span className="eyebrow">COOST MODULE</span>
       <h1>{location.pathname.replace('/', '').toUpperCase()}</h1>
-      <p>Bu modul Foundation tamamlandiktan sonra gelistirilecek.</p>
+      <p>Bu modül Foundation tamamlandıktan sonra geliştirilecek.</p>
     </section>
   )
 }

@@ -10,10 +10,10 @@ export function DashboardPage() {
     <section className="dashboard-page">
       <div className="page-heading">
         <span className="eyebrow">COOST</span>
-        <h1>Ä°ÅŸletme Ã–zeti</h1>
+        <h1>İşletme Özeti</h1>
         <p>
-          Finans, operasyon ve yÃ¶netim sinyalleri burada tek bir noktada
-          birleÅŸecek.
+          Finans, operasyon ve yönetim sinyalleri burada tek bir noktada
+          birleşecek.
         </p>
       </div>
 
@@ -24,12 +24,16 @@ export function DashboardPage() {
           </div>
 
           <div className="card-content">
-            <span>BUGÃœN</span>
+            <span>BUGÜN</span>
             <strong>Foundation aktif</strong>
-            <p>COOST uygulama kabuÄŸu Ã§alÄ±ÅŸÄ±yor.</p>
+            <p>COOST uygulama kabuğu çalışıyor.</p>
           </div>
 
-          <button className="card-action" type="button" aria-label="Detaya git">
+          <button
+            className="card-action"
+            type="button"
+            aria-label="Detaya git"
+          >
             <ArrowRight size={18} />
           </button>
         </article>
@@ -40,12 +44,18 @@ export function DashboardPage() {
           </div>
 
           <div className="card-content">
-            <span>ASÄ°STAN</span>
-            <strong>HazÄ±rlanÄ±yor</strong>
-            <p>Karar ve aksiyon motorlarÄ± sonraki aÅŸamalarda baÄŸlanacak.</p>
+            <span>ASİSTAN</span>
+            <strong>Hazırlanıyor</strong>
+            <p>
+              Karar ve aksiyon motorları sonraki aşamalarda bağlanacak.
+            </p>
           </div>
 
-          <button className="card-action" type="button" aria-label="Detaya git">
+          <button
+            className="card-action"
+            type="button"
+            aria-label="Detaya git"
+          >
             <ArrowRight size={18} />
           </button>
         </article>
@@ -56,12 +66,19 @@ export function DashboardPage() {
           </div>
 
           <div className="card-content">
-            <span>SÄ°STEM</span>
-            <strong>Temiz baÅŸlangÄ±Ã§</strong>
-            <p>Tenant, yetki ve audit altyapÄ±sÄ± henÃ¼z eklenmedi.</p>
+            <span>SİSTEM</span>
+            <strong>Güvenlik altyapısı aktif</strong>
+            <p>
+              Tenant izolasyonu, RLS ve kullanıcı yetkilendirmesi
+              staging ortamında doğrulandı.
+            </p>
           </div>
 
-          <button className="card-action" type="button" aria-label="Detaya git">
+          <button
+            className="card-action"
+            type="button"
+            aria-label="Detaya git"
+          >
             <ArrowRight size={18} />
           </button>
         </article>

@@ -15,9 +15,9 @@ export type NavigationSection = {
 
 export const appNavigation: NavigationSection[] = [
   {
-    label: 'YONETIM',
+    label: 'YÖNETİM',
     items: [
-      { label: 'Bugun', path: '/' },
+      { label: 'Bugün', path: '/' },
       {
         label: 'Asistan',
         path: '/assistant',
@@ -36,13 +36,13 @@ export const appNavigation: NavigationSection[] = [
         requiredPermission: 'finance.read',
       },
       {
-        label: 'Tedarikciler',
+        label: 'Tedarikçiler',
         path: '/suppliers',
         requiredModule: 'suppliers',
         requiredPermission: 'suppliers.read',
       },
       {
-        label: 'Cekler',
+        label: 'Çekler',
         path: '/checks',
         requiredModule: 'checks',
         requiredPermission: 'checks.read',
@@ -59,7 +59,7 @@ export const appNavigation: NavigationSection[] = [
         requiredPermission: 'inventory.read',
       },
       {
-        label: 'Satinalma',
+        label: 'Satınalma',
         path: '/purchasing',
         requiredModule: 'purchasing',
         requiredPermission: 'purchasing.read',
