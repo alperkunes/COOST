@@ -1,11 +1,14 @@
 import './App.css'
 import { AppProviders } from './app/AppProviders'
 import { AppRouter } from './app/AppRouter'
+import { AppGate } from './shared/auth/AppGate'
 
 function App() {
   return (
     <AppProviders>
-      <AppRouter />
+      <AppGate>
+        <AppRouter />
+      </AppGate>
     </AppProviders>
   )
 }
