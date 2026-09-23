@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   BadgeDollarSign,
@@ -15,6 +16,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react'
+import { hasAccess } from '../../core/access/accessUtils'
 import { appNavigation } from '../../core/navigation/appNavigation'
 import { useAuth } from '../../shared/auth/useAuth'
 import { useTenant } from '../../shared/tenant/useTenant'
@@ -32,7 +34,22 @@ const navigationIcons: Record<string, LucideIcon> = {
 
 export function AppShell() {
   const { signOut } = useAuth()
-  const { tenantName } = useTenant()
+  const { tenantName, context } = useTenant()
+
+  const visibleNavigation = useMemo(() => {
+    if (!context) {
+      return []
+    }
+
+    return appNavigation
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) =>
+          hasAccess(context, item),
+        ),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [context])
 
   const handleSignOut = () => {
     void signOut().catch((error) => {
@@ -53,13 +70,16 @@ export function AppShell() {
         </div>
 
         <nav className="sidebar-nav" aria-label="Ana navigasyon">
-          {appNavigation.map((section) => (
+          {visibleNavigation.map((section) => (
             <div className="nav-section" key={section.label}>
-              <span className="nav-section-title">{section.label}</span>
+              <span className="nav-section-title">
+                {section.label}
+              </span>
 
               {section.items.map((item) => {
                 const Icon =
-                  navigationIcons[item.path] ?? BadgeDollarSign
+                  navigationIcons[item.path] ??
+                  BadgeDollarSign
 
                 return (
                   <NavLink

@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { DashboardPage } from '../modules/dashboard/pages/DashboardPage'
+import { RequireAccess } from '../shared/access/RequireAccess'
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage'
 
 export function AppRouter() {
@@ -9,13 +10,90 @@ export function AppRouter() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
-          <Route path="assistant" element={<PlaceholderPage />} />
-          <Route path="finance" element={<PlaceholderPage />} />
-          <Route path="suppliers" element={<PlaceholderPage />} />
-          <Route path="checks" element={<PlaceholderPage />} />
-          <Route path="inventory" element={<PlaceholderPage />} />
-          <Route path="purchasing" element={<PlaceholderPage />} />
-          <Route path="staff" element={<PlaceholderPage />} />
+
+          <Route
+            path="assistant"
+            element={
+              <RequireAccess
+                requiredModule="assistant"
+                requiredPermission="assistant.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
+
+          <Route
+            path="finance"
+            element={
+              <RequireAccess
+                requiredModule="finance"
+                requiredPermission="finance.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
+
+          <Route
+            path="suppliers"
+            element={
+              <RequireAccess
+                requiredModule="suppliers"
+                requiredPermission="suppliers.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
+
+          <Route
+            path="checks"
+            element={
+              <RequireAccess
+                requiredModule="checks"
+                requiredPermission="checks.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
+
+          <Route
+            path="inventory"
+            element={
+              <RequireAccess
+                requiredModule="inventory"
+                requiredPermission="inventory.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
+
+          <Route
+            path="purchasing"
+            element={
+              <RequireAccess
+                requiredModule="purchasing"
+                requiredPermission="purchasing.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
+
+          <Route
+            path="staff"
+            element={
+              <RequireAccess
+                requiredModule="staff"
+                requiredPermission="staff.read"
+              >
+                <PlaceholderPage />
+              </RequireAccess>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

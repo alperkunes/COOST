@@ -6,6 +6,7 @@ import {
   tenantSchema,
 } from '../core/tenant/tenantSchemas'
 import {
+  hasAccess,
   hasModule,
   hasPermission,
 } from '../core/access/accessUtils'
@@ -80,5 +81,19 @@ describe('tenant foundation', () => {
 
     expect(hasPermission(context, 'finance.read')).toBe(true)
     expect(hasPermission(context, 'finance.write')).toBe(false)
+
+    expect(
+      hasAccess(context, {
+        requiredModule: 'finance',
+        requiredPermission: 'finance.read',
+      }),
+    ).toBe(true)
+
+    expect(
+      hasAccess(context, {
+        requiredModule: 'finance',
+        requiredPermission: 'finance.write',
+      }),
+    ).toBe(false)
   })
 })
