@@ -663,6 +663,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_finance_transfer: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_from_account_id: string
+          p_occurred_at?: string
+          p_tenant_id: string
+          p_to_account_id: string
+        }
+        Returns: string
+      }
       get_finance_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
