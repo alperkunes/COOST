@@ -18,6 +18,7 @@ import { hasAccess } from '../../../core/access/accessUtils'
 import { useTenant } from '../../../shared/tenant/useTenant'
 import { useFinanceOverview } from '../queries/useFinanceOverview'
 import { FinanceAdjustmentDialog } from './FinanceAdjustmentDialog'
+import { FinanceTransferDialog } from './FinanceTransferDialog'
 import './FinancePage.css'
 
 function formatMoney(
@@ -174,6 +175,7 @@ function getTransactionMeta(
 
 export function FinancePage() {
   const { context } = useTenant()
+  const [transferOpen, setTransferOpen] = useState(false)
   const [adjustmentAccount, setAdjustmentAccount] =
     useState<FinanceOverviewAccount | null>(null)
 
@@ -252,6 +254,12 @@ export function FinancePage() {
         </div>
 
         <div className="finance-heading-actions">
+          {canWrite ? (
+            <button type="button" className="finance-refresh-button" disabled={accounts.length < 2} onClick={() => setTransferOpen(true)}>
+              <ArrowLeftRight size={16} />
+              Transfer Yap
+            </button>
+          ) : null}
           <span
             className={`finance-readonly-badge ${
               canWrite ? 'finance-write-badge' : ''
@@ -502,6 +510,9 @@ export function FinancePage() {
             setAdjustmentAccount(null)
           }}
         />
+      ) : null}
+      {canWrite && transferOpen ? (
+        <FinanceTransferDialog accounts={accounts} onClose={() => setTransferOpen(false)} />
       ) : null}
     </section>
   )

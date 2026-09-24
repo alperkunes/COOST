@@ -467,8 +467,9 @@
 }
 
 .finance-dialog {
+  max-height: calc(100dvh - 48px);
   width: min(100%, 520px);
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid var(--coost-border);
   border-radius: 18px;
   background: #ffffff;
@@ -553,6 +554,7 @@
 }
 
 .finance-dialog-field input,
+.finance-dialog-field select,
 .finance-dialog-field textarea {
   width: 100%;
   box-sizing: border-box;
@@ -576,9 +578,15 @@
 }
 
 .finance-dialog-field input:focus,
+.finance-dialog-field select:focus,
 .finance-dialog-field textarea:focus {
   border-color: #9ebde5;
   box-shadow: 0 0 0 3px rgba(63, 117, 188, 0.09);
+}
+
+.finance-dialog-field select {
+  min-height: 44px;
+  padding: 0 13px;
 }
 
 .finance-dialog-field small {
