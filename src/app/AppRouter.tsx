@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { DashboardPage } from '../modules/dashboard/pages/DashboardPage'
+import { FinancePage } from '../modules/finance/pages/FinancePage'
 import { RequireAccess } from '../shared/access/RequireAccess'
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage'
 
@@ -30,7 +31,7 @@ export function AppRouter() {
                 requiredModule="finance"
                 requiredPermission="finance.read"
               >
-                <PlaceholderPage />
+                <FinancePage />
               </RequireAccess>
             }
           />
