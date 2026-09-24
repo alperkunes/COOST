@@ -653,6 +653,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_finance_overview: {
+        Args: { p_recent_limit?: number; p_tenant_id: string }
+        Returns: Json
+      }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
     }
     Enums: {
