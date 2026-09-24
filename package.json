@@ -11,7 +11,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "verify": "npm run typecheck && npm run test && npm run lint && npm run build",
-    "test:rls:staging": "npm run check:staging-target && supabase db query --linked --file ./supabase/tests/staging/01_tenant_isolation.sql && supabase db query --linked --file ./supabase/tests/staging/02_authorization_modules.sql && supabase db query --linked --file ./supabase/tests/staging/03_current_tenant_context.sql && supabase db query --linked --file ./supabase/tests/staging/04_finance_foundation.sql && supabase db query --linked --file ./supabase/tests/staging/05_finance_overview_rpc.sql",
+    "test:rls:staging": "npm run check:staging-target && supabase db query --linked --file ./supabase/tests/staging/01_tenant_isolation.sql && supabase db query --linked --file ./supabase/tests/staging/02_authorization_modules.sql && supabase db query --linked --file ./supabase/tests/staging/03_current_tenant_context.sql && supabase db query --linked --file ./supabase/tests/staging/04_finance_foundation.sql && supabase db query --linked --file ./supabase/tests/staging/05_finance_overview_rpc.sql && supabase db query --linked --file ./supabase/tests/staging/06_finance_adjustment_command.sql",
     "verify:staging": "npm run verify && npm run test:rls:staging",
     "check:staging-target": "node ./scripts/assert-staging-target.mjs"
   },

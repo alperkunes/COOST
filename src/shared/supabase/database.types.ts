@@ -653,6 +653,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_finance_adjustment: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_description: string
+          p_occurred_at?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       get_finance_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
