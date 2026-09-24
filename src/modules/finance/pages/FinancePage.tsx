@@ -5,14 +5,19 @@ import {
   Banknote,
   Building2,
   Landmark,
+  Pencil,
   RefreshCw,
   WalletCards,
 } from 'lucide-react'
+import { useState } from 'react'
 import type {
   FinanceOverviewAccount,
   FinanceOverviewTransaction,
 } from '../model/financeOverview'
+import { hasAccess } from '../../../core/access/accessUtils'
+import { useTenant } from '../../../shared/tenant/useTenant'
 import { useFinanceOverview } from '../queries/useFinanceOverview'
+import { FinanceAdjustmentDialog } from './FinanceAdjustmentDialog'
 import './FinancePage.css'
 
 function formatMoney(
@@ -168,7 +173,18 @@ function getTransactionMeta(
 }
 
 export function FinancePage() {
+  const { context } = useTenant()
+  const [adjustmentAccount, setAdjustmentAccount] =
+    useState<FinanceOverviewAccount | null>(null)
+
   const financeQuery = useFinanceOverview()
+
+  const canWrite =
+    context !== null &&
+    hasAccess(context, {
+      requiredModule: 'finance',
+      requiredPermission: 'finance.write',
+    })
 
   if (financeQuery.isPending) {
     return (
@@ -236,8 +252,12 @@ export function FinancePage() {
         </div>
 
         <div className="finance-heading-actions">
-          <span className="finance-readonly-badge">
-            Salt okunur
+          <span
+            className={`finance-readonly-badge ${
+              canWrite ? 'finance-write-badge' : ''
+            }`}
+          >
+            {canWrite ? 'Yazma yetkisi' : 'Salt okunur'}
           </span>
 
           <button
@@ -357,12 +377,27 @@ export function FinancePage() {
                     </span>
                   </div>
 
-                  <strong className="finance-account-balance">
-                    {formatMoney(
-                      account.balance,
-                      account.currencyCode,
-                    )}
-                  </strong>
+                  <div className="finance-account-actions">
+                    <strong className="finance-account-balance">
+                      {formatMoney(
+                        account.balance,
+                        account.currencyCode,
+                      )}
+                    </strong>
+
+                    {canWrite ? (
+                      <button
+                        type="button"
+                        className="finance-adjust-button"
+                        onClick={() => {
+                          setAdjustmentAccount(account)
+                        }}
+                      >
+                        <Pencil size={13} />
+                        Düzelt
+                      </button>
+                    ) : null}
+                  </div>
                 </article>
               ))}
             </div>
@@ -458,6 +493,16 @@ export function FinancePage() {
           )}
         </section>
       </div>
+
+      {canWrite && adjustmentAccount ? (
+        <FinanceAdjustmentDialog
+          key={adjustmentAccount.id}
+          account={adjustmentAccount}
+          onClose={() => {
+            setAdjustmentAccount(null)
+          }}
+        />
+      ) : null}
     </section>
   )
 }
