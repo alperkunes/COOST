@@ -518,6 +518,166 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_invoice_lines: {
+        Row: {
+          created_at: string
+          description: string
+          gross_amount: number
+          id: string
+          inventory_item_id: string | null
+          line_no: number
+          net_amount: number
+          price_includes_tax: boolean
+          purchase_invoice_id: string
+          quantity: number
+          supplier_product_code: string | null
+          tax_amount: number
+          tax_rate: number
+          tenant_id: string
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          gross_amount: number
+          id?: string
+          inventory_item_id?: string | null
+          line_no: number
+          net_amount: number
+          price_includes_tax: boolean
+          purchase_invoice_id: string
+          quantity: number
+          supplier_product_code?: string | null
+          tax_amount: number
+          tax_rate: number
+          tenant_id: string
+          unit: string
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          gross_amount?: number
+          id?: string
+          inventory_item_id?: string | null
+          line_no?: number
+          net_amount?: number
+          price_includes_tax?: boolean
+          purchase_invoice_id?: string
+          quantity?: number
+          supplier_product_code?: string | null
+          tax_amount?: number
+          tax_rate?: number
+          tenant_id?: string
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_invoice_lines_purchase_invoice_id_tenant_id_fkey"
+            columns: ["purchase_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_invoice_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_invoices: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          currency_code: string
+          description: string | null
+          due_date: string | null
+          grand_total: number
+          id: string
+          invoice_date: string
+          invoice_number: string
+          location_id: string | null
+          posted_at: string | null
+          posted_by_user_id: string | null
+          status: string
+          subtotal: number
+          supplier_id: string
+          tax_total: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          currency_code: string
+          description?: string | null
+          due_date?: string | null
+          grand_total: number
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          location_id?: string | null
+          posted_at?: string | null
+          posted_by_user_id?: string | null
+          status?: string
+          subtotal: number
+          supplier_id: string
+          tax_total: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          currency_code?: string
+          description?: string | null
+          due_date?: string | null
+          grand_total?: number
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          location_id?: string | null
+          posted_at?: string | null
+          posted_by_user_id?: string | null
+          status?: string
+          subtotal?: number
+          supplier_id?: string
+          tax_total?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_invoices_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_supplier_id_tenant_id_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -873,6 +1033,20 @@ export type Database = {
         }
         Returns: string
       }
+      create_purchase_invoice_draft: {
+        Args: {
+          p_currency_code: string
+          p_description?: string
+          p_due_date?: string
+          p_invoice_date: string
+          p_invoice_number: string
+          p_lines: Json
+          p_location_id?: string
+          p_supplier_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_supplier: {
         Args: {
           p_email?: string
@@ -904,6 +1078,18 @@ export type Database = {
         Returns: Json
       }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
+      get_purchase_invoice_context: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_purchase_invoice_detail: {
+        Args: { p_invoice_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_purchase_invoice_overview: {
+        Args: { p_recent_limit?: number; p_tenant_id: string }
+        Returns: Json
+      }
       get_supplier_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
@@ -912,11 +1098,30 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      post_purchase_invoice: {
+        Args: { p_invoice_id: string; p_tenant_id: string }
+        Returns: string
+      }
       update_finance_account: {
         Args: {
           p_account_id: string
           p_name: string
           p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_purchase_invoice_draft: {
+        Args: {
+          p_currency_code: string
+          p_description?: string
+          p_due_date?: string
+          p_invoice_date: string
+          p_invoice_id: string
+          p_invoice_number: string
+          p_lines: Json
+          p_location_id?: string
+          p_supplier_id: string
           p_tenant_id: string
         }
         Returns: string

@@ -3,6 +3,7 @@ import { AppShell } from './layout/AppShell'
 import { DashboardPage } from '../modules/dashboard/pages/DashboardPage'
 import { FinancePage } from '../modules/finance/pages/FinancePage'
 import { SupplierPage } from '../modules/suppliers/pages/SupplierPage'
+import { PurchaseInvoicePage } from '../modules/purchasing/pages/PurchaseInvoicePage'
 import { RequireAccess } from '../shared/access/RequireAccess'
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage'
 
@@ -80,7 +81,7 @@ export function AppRouter() {
                 requiredModule="purchasing"
                 requiredPermission="purchasing.read"
               >
-                <PlaceholderPage />
+                <PurchaseInvoicePage />
               </RequireAccess>
             }
           />
