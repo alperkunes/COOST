@@ -29,6 +29,7 @@ it('hides cashflow, adjustment and transfer actions for read-only users', () => 
   expect(screen.queryByRole('button', { name: 'Gelir / Gider Ekle' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Transfer Yap' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Düzelt' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Hesapları Yönet' })).not.toBeInTheDocument()
 })
 
 it('opens and closes cashflow for a finance writer', async () => {
@@ -46,4 +47,22 @@ it('hides cashflow when finance is disabled even with write permission', () => {
   tenant.context.modules = []
   setup()
   expect(screen.queryByRole('button', { name: 'Gelir / Gider Ekle' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Hesapları Yönet' })).not.toBeInTheDocument()
+})
+
+it('excludes passive accounts from overview totals and transaction selections', async () => {
+  tenant.context.permissions.push('finance.write')
+  overview.accounts.push({ id: 'passive', name: 'Kapalı Kasa', accountType: 'CASH', currencyCode: 'TRY', status: 'PASSIVE', balance: 900 })
+  try {
+    setup()
+    expect(screen.queryByText('Kapalı Kasa')).not.toBeInTheDocument()
+    expect(screen.queryByText(/1\.000,00/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Transfer Yap' })).toBeDisabled()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Gelir / Gider Ekle' }))
+    expect(screen.queryByRole('option', { name: /Kapalı Kasa/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Kasa \(TRY\)/ })).toBeInTheDocument()
+  } finally {
+    overview.accounts.pop()
+  }
 })

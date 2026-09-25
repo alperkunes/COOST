@@ -20,6 +20,7 @@ import { useFinanceOverview } from '../queries/useFinanceOverview'
 import { FinanceAdjustmentDialog } from './FinanceAdjustmentDialog'
 import { FinanceTransferDialog } from './FinanceTransferDialog'
 import { FinanceCashflowDialog } from './FinanceCashflowDialog'
+import { FinanceAccountManagementDialog } from './FinanceAccountManagementDialog'
 import './FinancePage.css'
 
 function formatMoney(
@@ -178,6 +179,7 @@ export function FinancePage() {
   const { context } = useTenant()
   const [transferOpen, setTransferOpen] = useState(false)
   const [cashflowOpen, setCashflowOpen] = useState(false)
+  const [managementOpen, setManagementOpen] = useState(false)
   const [adjustmentAccount, setAdjustmentAccount] =
     useState<FinanceOverviewAccount | null>(null)
 
@@ -228,7 +230,7 @@ export function FinancePage() {
   }
 
   const overview = financeQuery.data
-  const accounts = overview.accounts
+  const accounts = overview.accounts.filter((account) => account.status === 'ACTIVE')
 
   const cashAccounts = accounts.filter(
     (account) => account.accountType === 'CASH',
@@ -256,6 +258,11 @@ export function FinancePage() {
         </div>
 
         <div className="finance-heading-actions">
+          {canWrite ? (
+            <button type="button" className="finance-refresh-button" onClick={() => setManagementOpen(true)}>
+              <Landmark size={16} />Hesapları Yönet
+            </button>
+          ) : null}
           {canWrite ? (
             <button type="button" className="finance-refresh-button" disabled={!accounts.some((account) => account.status === 'ACTIVE')} onClick={() => setCashflowOpen(true)}>
               <Banknote size={16} />
@@ -361,8 +368,7 @@ export function FinancePage() {
                 Henüz kasa veya banka hesabı yok
               </strong>
               <span>
-                Hesap tanımlama özelliği bir sonraki
-                adımda eklenecek.
+                {canWrite ? 'Hesapları Yönet üzerinden kasa veya banka hesabı ekleyin.' : 'Hesap eklemek için işletme yetkilinizle iletişime geçin.'}
               </span>
             </div>
           ) : (
@@ -524,6 +530,9 @@ export function FinancePage() {
       ) : null}
       {canWrite && cashflowOpen ? (
         <FinanceCashflowDialog accounts={accounts} onClose={() => setCashflowOpen(false)} />
+      ) : null}
+      {canWrite && managementOpen ? (
+        <FinanceAccountManagementDialog onClose={() => setManagementOpen(false)} />
       ) : null}
     </section>
   )

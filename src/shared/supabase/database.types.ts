@@ -653,6 +653,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_finance_account: {
+        Args: {
+          p_account_type: string
+          p_currency_code: string
+          p_location_id?: string
+          p_name: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_finance_adjustment: {
         Args: {
           p_account_id: string
@@ -685,11 +695,24 @@ export type Database = {
         }
         Returns: string
       }
+      get_finance_account_management: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       get_finance_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
       }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
+      update_finance_account: {
+        Args: {
+          p_account_id: string
+          p_name: string
+          p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
