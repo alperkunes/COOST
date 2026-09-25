@@ -4,6 +4,7 @@ import { DashboardPage } from '../modules/dashboard/pages/DashboardPage'
 import { FinancePage } from '../modules/finance/pages/FinancePage'
 import { SupplierPage } from '../modules/suppliers/pages/SupplierPage'
 import { PurchaseInvoicePage } from '../modules/purchasing/pages/PurchaseInvoicePage'
+import { InventoryPage } from '../modules/inventory/pages/InventoryPage'
 import { RequireAccess } from '../shared/access/RequireAccess'
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage'
 
@@ -69,7 +70,7 @@ export function AppRouter() {
                 requiredModule="inventory"
                 requiredPermission="inventory.read"
               >
-                <PlaceholderPage />
+                <InventoryPage />
               </RequireAccess>
             }
           />

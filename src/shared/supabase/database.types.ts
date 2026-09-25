@@ -244,6 +244,226 @@ export type Database = {
           },
         ]
       }
+      inventory_count_lines: {
+        Row: {
+          count_id: string
+          counted_quantity: number | null
+          difference: number | null
+          id: string
+          inventory_item_id: string
+          system_quantity: number
+          tenant_id: string
+        }
+        Insert: {
+          count_id: string
+          counted_quantity?: number | null
+          difference?: number | null
+          id?: string
+          inventory_item_id: string
+          system_quantity: number
+          tenant_id: string
+        }
+        Update: {
+          count_id?: string
+          counted_quantity?: number | null
+          difference?: number | null
+          id?: string
+          inventory_item_id?: string
+          system_quantity?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_count_lines_count_id_tenant_id_fkey"
+            columns: ["count_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_counts"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "inventory_count_lines_inventory_item_id_tenant_id_fkey"
+            columns: ["inventory_item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "inventory_count_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_counts: {
+        Row: {
+          counted_at: string
+          created_at: string
+          created_by: string
+          id: string
+          location_id: string
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          counted_at?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          location_id: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          counted_at?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          location_id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_counts_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "inventory_counts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          base_unit: string
+          category: string | null
+          created_at: string
+          critical_stock: number | null
+          id: string
+          name: string
+          sku: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_unit: string
+          category?: string | null
+          created_at?: string
+          critical_stock?: number | null
+          id?: string
+          name: string
+          sku?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_unit?: string
+          category?: string | null
+          created_at?: string
+          critical_stock?: number | null
+          id?: string
+          name?: string
+          sku?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          description: string
+          id: string
+          inventory_item_id: string
+          location_id: string
+          movement_type: string
+          occurred_at: string
+          quantity: number
+          source_id: string | null
+          source_type: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          description: string
+          id?: string
+          inventory_item_id: string
+          location_id: string
+          movement_type: string
+          occurred_at?: string
+          quantity: number
+          source_id?: string | null
+          source_type?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          description?: string
+          id?: string
+          inventory_item_id?: string
+          location_id?: string
+          movement_type?: string
+          occurred_at?: string
+          quantity?: number
+          source_id?: string | null
+          source_type?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inventory_item_id_tenant_id_fkey"
+            columns: ["inventory_item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string
@@ -577,6 +797,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_invoice_inventory_item_tenant_fk"
+            columns: ["inventory_item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "tenant_id"]
+          },
           {
             foreignKeyName: "purchase_invoice_lines_purchase_invoice_id_tenant_id_fkey"
             columns: ["purchase_invoice_id", "tenant_id"]
@@ -1033,6 +1260,39 @@ export type Database = {
         }
         Returns: string
       }
+      create_inventory_count: {
+        Args: {
+          p_counted_at?: string
+          p_location_id: string
+          p_notes?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      create_inventory_item: {
+        Args: {
+          p_base_unit: string
+          p_category?: string
+          p_critical_stock?: number
+          p_name: string
+          p_sku?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      create_inventory_movement: {
+        Args: {
+          p_description: string
+          p_direction?: string
+          p_item_id: string
+          p_location_id: string
+          p_movement_type: string
+          p_occurred_at?: string
+          p_quantity: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_purchase_invoice_draft: {
         Args: {
           p_currency_code: string
@@ -1077,6 +1337,17 @@ export type Database = {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
       }
+      get_inventory_context: { Args: { p_tenant_id: string }; Returns: Json }
+      get_inventory_count_detail: {
+        Args: { p_count_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_inventory_counts: { Args: { p_tenant_id: string }; Returns: Json }
+      get_inventory_management: { Args: { p_tenant_id: string }; Returns: Json }
+      get_inventory_overview: {
+        Args: { p_location_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
       get_purchase_invoice_context: {
         Args: { p_tenant_id: string }
@@ -1098,6 +1369,10 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      post_inventory_count: {
+        Args: { p_count_id: string; p_tenant_id: string }
+        Returns: string
+      }
       post_purchase_invoice: {
         Args: { p_invoice_id: string; p_tenant_id: string }
         Returns: string
@@ -1106,6 +1381,22 @@ export type Database = {
         Args: {
           p_account_id: string
           p_name: string
+          p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_inventory_count: {
+        Args: { p_count_id: string; p_lines: Json; p_tenant_id: string }
+        Returns: string
+      }
+      update_inventory_item: {
+        Args: {
+          p_category?: string
+          p_critical_stock?: number
+          p_item_id: string
+          p_name: string
+          p_sku?: string
           p_status: string
           p_tenant_id: string
         }
