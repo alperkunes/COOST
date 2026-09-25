@@ -298,6 +298,8 @@ export type Database = {
       }
       inventory_counts: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
           counted_at: string
           created_at: string
           created_by: string
@@ -310,6 +312,8 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           counted_at?: string
           created_at?: string
           created_by: string
@@ -322,6 +326,8 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           counted_at?: string
           created_at?: string
           created_by?: string
@@ -1218,6 +1224,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_inventory_count: {
+        Args: { p_count_id: string; p_tenant_id: string }
+        Returns: string
+      }
       create_finance_account: {
         Args: {
           p_account_type: string

@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { useInventoryContext, useInventoryCountDetail } from '../queries/useInventory'
-import { useSaveInventoryItem, useCreateInventoryMovement, useCreateInventoryCount, useUpdateInventoryCount, usePostInventoryCount } from '../mutations/useInventoryCommands'
+import { useSaveInventoryItem, useCreateInventoryMovement, useCreateInventoryCount, useUpdateInventoryCount, usePostInventoryCount, useCancelInventoryCount } from '../mutations/useInventoryCommands'
 import { units, movementNames, itemInputSchema, movementInputSchema, parseQuantity, quantityText, signedQuantity, countDifference,
   type ItemInput, type InventoryItem, type MovementInput, type CountDetail } from '../model/inventory'
 
@@ -102,7 +102,7 @@ export function InventoryCountForm({ detail, canCount, canAdjust, onClose }: { d
   const update = useUpdateInventoryCount()
   const post = usePostInventoryCount()
   const submitting = useRef(false)
-  const locked = detail.status === 'POSTED' || !canCount
+  const locked = detail.status !== 'DRAFT' || !canCount
   const [values, setValues] = useState(() => Object.fromEntries(detail.lines.map((line) => [line.itemId, line.countedQuantity == null ? '' : String(line.countedQuantity)])))
   const [dirty, setDirty] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -120,9 +120,9 @@ export function InventoryCountForm({ detail, canCount, canAdjust, onClose }: { d
     submitting.current = true
     try { await post.mutateAsync(detail.id); onClose() } catch { /* Preserve confirmation for retry. */ } finally { submitting.current = false }
   }
-  return <Modal title={detail.status === 'POSTED' ? 'İşlenmiş Sayım' : 'Stok Sayımı'} busy={busy} onClose={onClose}>
+  return <Modal title={detail.status === 'CANCELLED' ? 'İptal Edildi' : detail.status === 'POSTED' ? 'İşlenmiş Sayım' : 'Stok Sayımı'} busy={busy} onClose={onClose}>
     <p>{detail.notes}</p><p className="finance-dialog-help">Sistem ve fark, taslakta başlangıç miktarını gösterir. İşlerken güncel stok yeniden hesaplanır.</p>
-    {locked ? <p>Salt okunur · {detail.status === 'POSTED' ? 'Bu sayım değiştirilemez.' : 'Sayım yetkisi gerekir.'}</p> : null}
+    {locked ? <p>Salt okunur · {detail.status !== 'DRAFT' ? 'Bu sayım değiştirilemez.' : 'Sayım yetkisi gerekir.'}</p> : null}
     <form onSubmit={save}><fieldset disabled={locked || busy || confirm} className="inventory-fields inventory-count-lines">
       {detail.lines.map((line) => { const counted = parseQuantity(values[line.itemId] ?? '', true); return <article key={line.itemId} className="inventory-count-line">
         <strong>{line.itemName} · {units[line.baseUnit]}</strong><span>Sistem: {quantityText(line.systemQuantity)}</span>
@@ -136,4 +136,19 @@ export function InventoryCountForm({ detail, canCount, canAdjust, onClose }: { d
     {confirm && !locked ? <div className="inventory-confirm"><p>Sayım farkları stok hareketi olarak işlenecektir. İşlenmiş sayım değiştirilemez.</p><ErrorMessage error={post.error} />
       <div className="finance-dialog-actions"><button disabled={busy} onClick={() => setConfirm(false)}>Vazgeç</button><button className="primary" disabled={busy} onClick={() => { void postCount() }}>{busy ? 'İşleniyor...' : 'Onayla ve İşle'}</button></div></div> : null}
   </Modal>
+}
+export function InventoryCountCancelDialog({ countId, onClose }: { countId: string; onClose: () => void }) {
+  const mutation = useCancelInventoryCount()
+  const submitting = useRef(false)
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (submitting.current || mutation.isPending) return
+    submitting.current = true
+    try { await mutation.mutateAsync(countId); onClose() } catch { /* Keep confirmation for retry. */ } finally { submitting.current = false }
+  }
+  return <Modal title="Sayımı İptal Et" busy={mutation.isPending} onClose={onClose}><form onSubmit={submit}>
+    <p>Bu taslak sayım iptal edilecek. Herhangi bir stok hareketi oluşmayacaktır.</p>
+    <ErrorMessage error={mutation.error} />
+    <Actions onClose={onClose} busy={mutation.isPending} disabled={false} label="Onayla ve İptal Et" />
+  </form></Modal>
 }

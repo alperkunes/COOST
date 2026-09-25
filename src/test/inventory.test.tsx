@@ -1,9 +1,9 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryPage } from '../modules/inventory/pages/InventoryPage'
-import { InventoryItemDialog, InventoryMovementDialog, InventoryCountStartDialog, InventoryCountForm } from '../modules/inventory/pages/InventoryDialogs'
+import { InventoryItemDialog, InventoryMovementDialog, InventoryCountStartDialog, InventoryCountForm, InventoryCountCancelDialog } from '../modules/inventory/pages/InventoryDialogs'
 import { parseQuantity, itemInputSchema, signedQuantity, countDifference, type InventoryItem, type CountDetail } from '../modules/inventory/model/inventory'
 
 const { rpc, tenant } = vi.hoisted(() => ({ rpc: vi.fn(), tenant: {
@@ -15,7 +15,7 @@ const itemId = '91111111-aaaa-4aaa-8aaa-888888888881'
 const locationId = '91111111-aaaa-4aaa-8aaa-999999999991'
 const countId = '91111111-aaaa-4aaa-8aaa-777777777771'
 const item: InventoryItem = { id: itemId, name: 'Et', sku: 'ET-1', category: 'Protein', baseUnit: 'GRAM', criticalStock: 5, status: 'ACTIVE', quantity: -2, isCritical: true, isNegative: true }
-const detail: CountDetail = { tenantId: tenant.tenantId, id: countId, locationId, status: 'DRAFT', countedAt: '2026-09-25T12:00:00Z', notes: null, postedAt: null,
+const detail: CountDetail = { tenantId: tenant.tenantId, id: countId, locationId, status: 'DRAFT', countedAt: '2026-09-25T12:00:00Z', notes: null, postedAt: null, cancelledAt: null, cancelledBy: null,
   lines: [{ itemId, itemName: 'Et', baseUnit: 'GRAM', systemQuantity: -2, countedQuantity: 5, difference: 7 }] }
 beforeEach(() => {
   tenant.context.permissions = ['inventory.read']
@@ -26,18 +26,22 @@ beforeEach(() => {
     if (name === 'get_inventory_overview') return { data: { tenantId: tenant.tenantId, locationId: args.p_location_id ?? null, summary: { activeItemCount: 2, criticalItemCount: 2, negativeItemCount: 1 },
       items: [item, { ...item, id: countId, name: 'Yumurta', baseUnit: 'EACH', quantity: 3, isNegative: false }], locations: [{ id: locationId, name: 'Merkez', status: 'ACTIVE' }], recentMovements: [] }, error: null }
     if (name === 'get_inventory_management') return { data: { tenantId: tenant.tenantId, items: [item, { ...item, id: countId, name: 'Pasif Kart', status: 'PASSIVE', quantity: 0, isNegative: false }] }, error: null }
-    if (name === 'get_inventory_counts') return { data: { tenantId: tenant.tenantId, counts: [{ id: countId, locationId, locationName: 'Merkez', status: 'DRAFT', countedAt: detail.countedAt, postedAt: null, notes: null }] }, error: null }
+    if (name === 'get_inventory_counts') return { data: { tenantId: tenant.tenantId, counts: [
+      { id: countId, locationId, locationName: 'Merkez', status: 'DRAFT', countedAt: detail.countedAt, postedAt: null, notes: null, cancelledAt: null, cancelledBy: null },
+      { id: itemId, locationId, locationName: 'İşlenmiş Merkez', status: 'POSTED', countedAt: detail.countedAt, postedAt: detail.countedAt, notes: null, cancelledAt: null, cancelledBy: null },
+      { id: locationId, locationId, locationName: 'İptal Merkez', status: 'CANCELLED', countedAt: detail.countedAt, postedAt: null, notes: null, cancelledAt: detail.countedAt, cancelledBy: itemId },
+    ] }, error: null }
     if (name === 'get_inventory_count_detail') return { data: detail, error: null }
     return { data: countId, error: null }
   })
 })
 afterEach(cleanup)
-function setup(mode: 'page' | 'item' | 'edit' | 'movement' | 'start' | 'count' | 'posted' | 'count-readonly' | 'count-only' = 'page') {
+function setup(mode: 'page' | 'item' | 'edit' | 'movement' | 'start' | 'count' | 'posted' | 'cancelled' | 'cancel' | 'count-readonly' | 'count-only' = 'page') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   const invalidate = vi.spyOn(client, 'invalidateQueries')
   const onClose = vi.fn(), onCreated = vi.fn()
-  render(<QueryClientProvider client={client}>{mode === 'page' ? <InventoryPage /> : mode === 'item' || mode === 'edit' ? <InventoryItemDialog item={mode === 'edit' ? item : undefined} onClose={onClose} /> : mode === 'movement' ? <InventoryMovementDialog onClose={onClose} /> : mode === 'start' ? <InventoryCountStartDialog onClose={onClose} onCreated={onCreated} /> :
-    <InventoryCountForm detail={mode === 'posted' ? { ...detail, status: 'POSTED' } : detail} canCount={mode !== 'count-readonly'} canAdjust={mode !== 'count-only'} onClose={onClose} />}</QueryClientProvider>)
+  render(<QueryClientProvider client={client}>{mode === 'page' ? <InventoryPage /> : mode === 'item' || mode === 'edit' ? <InventoryItemDialog item={mode === 'edit' ? item : undefined} onClose={onClose} /> : mode === 'movement' ? <InventoryMovementDialog onClose={onClose} /> : mode === 'start' ? <InventoryCountStartDialog onClose={onClose} onCreated={onCreated} /> : mode === 'cancel' ? <InventoryCountCancelDialog countId={countId} onClose={onClose} /> :
+    <InventoryCountForm detail={mode === 'posted' ? { ...detail, status: 'POSTED' } : mode === 'cancelled' ? { ...detail, status: 'CANCELLED', cancelledAt: detail.countedAt, cancelledBy: itemId } : detail} canCount={mode !== 'count-readonly'} canAdjust={mode !== 'count-only'} onClose={onClose} />}</QueryClientProvider>)
   return { user: userEvent.setup(), onClose, onCreated, invalidate }
 }
 const commands = () => rpc.mock.calls.filter(([name]) => !String(name).startsWith('get_'))
@@ -74,7 +78,7 @@ describe('inventory page access and balances', () => {
     expect(screen.getByText('3 Adet')).toBeInTheDocument()
     expect(screen.getByText('Et').closest('article')).toHaveClass('inventory-negative')
     expect(screen.getByText('Yumurta').closest('article')).toHaveClass('inventory-critical')
-    for (const name of ['Yeni Stok Kartı', 'Hareket Ekle', 'Sayım Başlat', 'Düzenle']) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    for (const name of ['Yeni Stok Kartı', 'Hareket Ekle', 'Sayım Başlat', 'Düzenle', 'İptal Et']) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
   })
   it.each([['inventory.write', 'Yeni Stok Kartı'], ['inventory.adjust', 'Hareket Ekle'], ['inventory.count', 'Sayım Başlat']])('shows only %s controls', async (permission, label) => {
     tenant.context.permissions.push(permission)
@@ -193,7 +197,7 @@ describe('inventory counts', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['inventory-count-detail', tenant.tenantId] })
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['finance-overview', tenant.tenantId] })
   })
-  it.each(['posted', 'count-readonly'] as const)('keeps %s immutable in UI', (mode) => {
+  it.each(['posted', 'cancelled', 'count-readonly'] as const)('keeps %s immutable in UI', (mode) => {
     setup(mode)
     expect(screen.getByLabelText('Sayılan · Et')).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Sayımı Kaydet' })).not.toBeInTheDocument()
@@ -218,5 +222,65 @@ describe('inventory counts', () => {
     await act(async () => { resolve({ data: null, error: { message: 'Geçici hata' } }) })
     expect(await screen.findByRole('alert')).toHaveTextContent('Geçici hata')
     await user.click(screen.getByRole('button', { name: 'Onayla ve İşle' })); await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+  })
+})
+
+describe('inventory count cancellation', () => {
+  it('offers cancel only for DRAFT with count permission and preserves open detail', async () => {
+    tenant.context.permissions.push('inventory.count')
+    const { user } = setup()
+    await screen.findByText('İptal Merkez')
+    expect(screen.getAllByRole('button', { name: 'İptal Et' })).toHaveLength(1)
+    for (const label of ['İptal Merkez', 'İşlenmiş Merkez']) {
+      const card = screen.getByText(label).closest('article')!
+      expect(within(card).queryByRole('button', { name: 'İptal Et' })).not.toBeInTheDocument()
+      expect(within(card).getByRole('button', { name: 'Görüntüle' })).toBeInTheDocument()
+    }
+    expect(screen.getByText(/İptal Edildi/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Sayımı Aç' }))
+    expect(await screen.findByLabelText('Sayılan · Et')).toBeEnabled()
+  })
+  it('shows confirmation before RPC and cancellation can be dismissed', async () => {
+    tenant.context.permissions.push('inventory.count')
+    const { user } = setup()
+    await user.click(await screen.findByRole('button', { name: 'İptal Et' }))
+    expect(screen.getByText('Bu taslak sayım iptal edilecek. Herhangi bir stok hareketi oluşmayacaktır.')).toBeInTheDocument()
+    expect(commands()).toHaveLength(0)
+    await user.click(screen.getByRole('button', { name: 'Vazgeç' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(commands()).toHaveLength(0)
+  })
+  it('sends cancellation args and invalidates overview and count queries', async () => {
+    const { user, onClose, invalidate } = setup('cancel')
+    await user.click(screen.getByRole('button', { name: 'Onayla ve İptal Et' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(commands()).toEqual([['cancel_inventory_count', { p_tenant_id: tenant.tenantId, p_count_id: countId }]])
+    for (const key of ['inventory-overview', 'inventory-counts', 'inventory-count-detail']) expect(invalidate).toHaveBeenCalledWith({ queryKey: [key, tenant.tenantId] })
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['finance-overview', tenant.tenantId] })
+  })
+  it('blocks duplicate cancellation and keeps errors retryable', async () => {
+    const { user, onClose } = setup('cancel')
+    let resolve!: (value: { data: null; error: { message: string } }) => void
+    rpc.mockReturnValueOnce(new Promise((done) => { resolve = done }))
+    const form = screen.getByRole('button', { name: 'Onayla ve İptal Et' }).closest('form')!
+    act(() => { fireEvent.submit(form); fireEvent.submit(form) })
+    await waitFor(() => expect(commands()).toHaveLength(1))
+    expect(screen.getByRole('button', { name: 'Kapat' })).toBeDisabled()
+    await act(async () => { resolve({ data: null, error: { message: 'Geçici hata' } }) })
+    expect(await screen.findByRole('alert')).toHaveTextContent('Geçici hata')
+    expect(onClose).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Onayla ve İptal Et' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(commands()).toHaveLength(2)
+  })
+  it('maps already-open error to Turkish and keeps start form', async () => {
+    const { user, onCreated } = setup('start')
+    await screen.findByRole('option', { name: 'Merkez' })
+    await user.selectOptions(screen.getByLabelText('Lokasyon'), locationId)
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'INVENTORY_COUNT_ALREADY_OPEN' } })
+    await user.click(screen.getByRole('button', { name: 'Sayımı Başlat' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Bu lokasyonda açık bir taslak sayım var.')
+    expect(screen.getByLabelText('Lokasyon')).toHaveValue(locationId)
+    expect(onCreated).not.toHaveBeenCalled()
   })
 })

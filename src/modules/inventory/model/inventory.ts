@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const units = { GRAM: 'Gram', MILLILITER: 'Mililitre', EACH: 'Adet' } as const
+export const countStatusLabels = { DRAFT: 'Taslak', POSTED: 'İşlendi', CANCELLED: 'İptal Edildi' } as const
 export const movementNames = { RECEIPT: 'Giriş', ISSUE: 'Çıkış', WASTE: 'Fire', COMPLIMENTARY: 'İkram', MANUAL_ADJUSTMENT: 'Manuel Düzeltme', COUNT_ADJUSTMENT: 'Sayım Farkı' } as const
 export function parseQuantity(value: string, allowZero = false): number | null {
   const input = value.trim()
@@ -38,9 +39,9 @@ export const overviewSchema = z.object({ tenantId: z.uuid(), locationId: z.uuid(
 export const managementSchema = z.object({ tenantId: z.uuid(), items: z.array(itemSchema) })
 export const contextSchema = z.object({ tenantId: z.uuid(), locations: z.array(locationSchema), items: z.array(z.object({ id: z.uuid(), name: z.string(), baseUnit: baseUnitSchema })) })
 export const countsSchema = z.object({ tenantId: z.uuid(), counts: z.array(z.object({ id: z.uuid(), locationId: z.uuid(), locationName: z.string(),
-  status: z.enum(['DRAFT', 'POSTED']), countedAt: z.string(), notes: z.string().nullable(), postedAt: z.string().nullable() })) })
-export const countDetailSchema = z.object({ tenantId: z.uuid(), id: z.uuid(), locationId: z.uuid(), status: z.enum(['DRAFT', 'POSTED']),
-  countedAt: z.string(), notes: z.string().nullable(), postedAt: z.string().nullable(),
+  status: z.enum(['DRAFT', 'POSTED', 'CANCELLED']), countedAt: z.string(), notes: z.string().nullable(), postedAt: z.string().nullable(), cancelledAt: z.string().nullable(), cancelledBy: z.uuid().nullable() })) })
+export const countDetailSchema = z.object({ tenantId: z.uuid(), id: z.uuid(), locationId: z.uuid(), status: z.enum(['DRAFT', 'POSTED', 'CANCELLED']),
+  countedAt: z.string(), notes: z.string().nullable(), postedAt: z.string().nullable(), cancelledAt: z.string().nullable(), cancelledBy: z.uuid().nullable(),
   lines: z.array(z.object({ itemId: z.uuid(), itemName: z.string(), baseUnit: baseUnitSchema, systemQuantity: z.number(), countedQuantity: z.number().nullable(), difference: z.number().nullable() })) })
 export type CountDetail = z.infer<typeof countDetailSchema>
 const messages: Record<string, string> = {
@@ -51,7 +52,8 @@ const messages: Record<string, string> = {
   INVENTORY_NONZERO_STOCK: 'Kartı pasif yapmak için tüm lokasyonlardaki stok bakiyesi sıfır olmalıdır.', INVENTORY_NO_CHANGES: 'Değişiklik yapılmadı.',
   INVENTORY_BASE_UNIT_IMMUTABLE: 'Baz birim değiştirilemez.', INVENTORY_HISTORY_IMMUTABLE: 'Stok hareketi değiştirilemez.',
   INVENTORY_MOVEMENT_INVALID: 'Hareket tipini, yönünü ve açıklamasını kontrol edin.', INVENTORY_COUNT_INVALID: 'Sayım miktarlarını kontrol edin.',
-  INVENTORY_COUNT_INCOMPLETE: 'Tüm ürünler için sayılan miktarı girin.', INVENTORY_COUNT_IMMUTABLE: 'İşlenmiş sayım değiştirilemez.',
+  INVENTORY_COUNT_INCOMPLETE: 'Tüm ürünler için sayılan miktarı girin.', INVENTORY_COUNT_IMMUTABLE: 'İşlenmiş veya iptal edilmiş sayım değiştirilemez.',
+  INVENTORY_COUNT_ALREADY_OPEN: 'Bu lokasyonda açık bir taslak sayım var. Mevcut sayımı açın veya iptal edin.',
   INVENTORY_COUNT_NOT_AVAILABLE: 'Sayım bulunamadı.', INVENTORY_ITEMS_REQUIRED: 'Sayım için en az bir aktif stok kartı gerekir.',
 }
 export function inventoryError(message: string) { return messages[message] ?? message }

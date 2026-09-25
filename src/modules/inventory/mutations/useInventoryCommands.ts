@@ -40,3 +40,6 @@ export function useUpdateInventoryCount() {
 export function usePostInventoryCount() {
   return useInventoryCommand((tenantId, countId: string) => supabase.rpc('post_inventory_count', { p_tenant_id: tenantId, p_count_id: countId }))
 }
+export function useCancelInventoryCount() {
+  return useInventoryCommand((tenantId, countId: string) => supabase.rpc('cancel_inventory_count', { p_tenant_id: tenantId, p_count_id: countId }))
+}
