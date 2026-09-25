@@ -592,6 +592,184 @@ export type Database = {
           },
         ]
       }
+      supplier_ledger_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by_user_id: string
+          currency_code: string
+          description: string
+          entry_type: string
+          id: string
+          occurred_at: string
+          source_id: string | null
+          source_type: string
+          supplier_id: string
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by_user_id: string
+          currency_code: string
+          description: string
+          entry_type: string
+          id?: string
+          occurred_at: string
+          source_id?: string | null
+          source_type: string
+          supplier_id: string
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by_user_id?: string
+          currency_code?: string
+          description?: string
+          entry_type?: string
+          id?: string
+          occurred_at?: string
+          source_id?: string | null
+          source_type?: string
+          supplier_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_ledger_entries_supplier_id_tenant_id_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "supplier_ledger_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by_user_id: string
+          currency_code: string
+          description: string
+          finance_account_id: string
+          finance_transaction_id: string
+          id: string
+          occurred_at: string
+          supplier_id: string
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by_user_id: string
+          currency_code: string
+          description: string
+          finance_account_id: string
+          finance_transaction_id: string
+          id?: string
+          occurred_at: string
+          supplier_id: string
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by_user_id?: string
+          currency_code?: string
+          description?: string
+          finance_account_id?: string
+          finance_transaction_id?: string
+          id?: string
+          occurred_at?: string
+          supplier_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payments_finance_account_id_tenant_id_fkey"
+            columns: ["finance_account_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_finance_transaction_id_tenant_id_fkey"
+            columns: ["finance_transaction_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_supplier_id_tenant_id_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          tax_number: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          tax_number?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          tax_number?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_modules: {
         Row: {
           created_at: string
@@ -695,6 +873,28 @@ export type Database = {
         }
         Returns: string
       }
+      create_supplier: {
+        Args: {
+          p_email?: string
+          p_name: string
+          p_notes?: string
+          p_phone?: string
+          p_tax_number?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      create_supplier_payment: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_finance_account_id: string
+          p_occurred_at?: string
+          p_supplier_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       get_finance_account_management: {
         Args: { p_tenant_id: string }
         Returns: Json
@@ -704,11 +904,32 @@ export type Database = {
         Returns: Json
       }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
+      get_supplier_overview: {
+        Args: { p_recent_limit?: number; p_tenant_id: string }
+        Returns: Json
+      }
+      get_supplier_payment_context: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       update_finance_account: {
         Args: {
           p_account_id: string
           p_name: string
           p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_supplier: {
+        Args: {
+          p_email: string
+          p_name: string
+          p_notes: string
+          p_phone: string
+          p_status: string
+          p_supplier_id: string
+          p_tax_number: string
           p_tenant_id: string
         }
         Returns: string
