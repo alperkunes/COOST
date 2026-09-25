@@ -663,6 +663,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_finance_cashflow: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_description: string
+          p_occurred_at?: string
+          p_tenant_id: string
+          p_transaction_type: string
+        }
+        Returns: string
+      }
       create_finance_transfer: {
         Args: {
           p_amount: number

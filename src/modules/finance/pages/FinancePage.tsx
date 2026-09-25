@@ -19,6 +19,7 @@ import { useTenant } from '../../../shared/tenant/useTenant'
 import { useFinanceOverview } from '../queries/useFinanceOverview'
 import { FinanceAdjustmentDialog } from './FinanceAdjustmentDialog'
 import { FinanceTransferDialog } from './FinanceTransferDialog'
+import { FinanceCashflowDialog } from './FinanceCashflowDialog'
 import './FinancePage.css'
 
 function formatMoney(
@@ -176,6 +177,7 @@ function getTransactionMeta(
 export function FinancePage() {
   const { context } = useTenant()
   const [transferOpen, setTransferOpen] = useState(false)
+  const [cashflowOpen, setCashflowOpen] = useState(false)
   const [adjustmentAccount, setAdjustmentAccount] =
     useState<FinanceOverviewAccount | null>(null)
 
@@ -254,6 +256,12 @@ export function FinancePage() {
         </div>
 
         <div className="finance-heading-actions">
+          {canWrite ? (
+            <button type="button" className="finance-refresh-button" disabled={!accounts.some((account) => account.status === 'ACTIVE')} onClick={() => setCashflowOpen(true)}>
+              <Banknote size={16} />
+              Gelir / Gider Ekle
+            </button>
+          ) : null}
           {canWrite ? (
             <button type="button" className="finance-refresh-button" disabled={accounts.length < 2} onClick={() => setTransferOpen(true)}>
               <ArrowLeftRight size={16} />
@@ -513,6 +521,9 @@ export function FinancePage() {
       ) : null}
       {canWrite && transferOpen ? (
         <FinanceTransferDialog accounts={accounts} onClose={() => setTransferOpen(false)} />
+      ) : null}
+      {canWrite && cashflowOpen ? (
+        <FinanceCashflowDialog accounts={accounts} onClose={() => setCashflowOpen(false)} />
       ) : null}
     </section>
   )
