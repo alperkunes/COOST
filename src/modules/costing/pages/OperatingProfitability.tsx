@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { ArrowDownUp, Ban, Pencil, Plus, RefreshCw } from 'lucide-react'
+import { ArrowDownUp, Ban, Link, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { useOperating } from '../queries/useOperating'
 import { allocationLabels, expenseLabels, type Expense, type Period, type SalesFact } from '../model/operating'
 import { costMoney, costNumber } from '../model/costing'
 import { Field } from './CostingDialogs'
 import { ExpenseDialog, SalesDialog, VoidExpenseDialog } from './OperatingDialogs'
+import { SalesAppPanel } from './SalesAppPanel'
+import { salesSourceLabel } from '../model/salesApp'
 
 type SortKey = 'netSales' | 'directContribution' | 'allocatedOperatingContribution' | 'allocatedOperatingMarginPct'
 export function OperatingProfitability({ canWrite }: { canWrite: boolean }) {
@@ -13,6 +15,7 @@ export function OperatingProfitability({ canWrite }: { canWrite: boolean }) {
     return { startDate: `${endDate.slice(0, 7)}-01`, endDate, currencyCode: 'TRY', locationId: '', allocationMethod: 'NET_SALES' }
   })
   const [sort, setSort] = useState<{ key: SortKey; descending: boolean }>({ key: 'netSales', descending: true })
+  const [salesAppOpen, setSalesAppOpen] = useState(false)
   const [dialog, setDialog] = useState<{ kind: 'sales'; fact?: SalesFact } | { kind: 'expense'; expense?: Expense } | { kind: 'void'; expense: Expense } | null>(null)
   const { report, data, valid } = useOperating(period)
   const money = (value: number | null) => costMoney(value, period.currencyCode)
@@ -48,8 +51,9 @@ export function OperatingProfitability({ canWrite }: { canWrite: boolean }) {
     </> : null}
     {valid && data.isError ? <p role="alert">{data.error.message}</p> : null}
     {valid && data.data ? <>
-      <section className="operating-history"><div className="costing-record-heading"><h2>Satış Verisi</h2>{canWrite ? <button onClick={() => setDialog({ kind: 'sales' })}><Plus size={16} />Satış Ekle</button> : null}</div>
-        <div className="costing-table-wrap"><table><thead><tr>{['Tarih', 'Lokasyon', 'Menü ürünü', 'Satış adedi', 'Brüt satış', 'Net satış', 'Kaynak', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.data.sales.map((f) => <tr key={f.id}><td>{f.saleDate}</td><td>{locationName(f.locationId)}</td><th scope="row">{f.productName}</th><td>{costNumber(f.quantity, 4)}</td><td>{money(f.grossSales)}</td><td>{money(f.netSales)}</td><td>{f.sourceType === 'MANUAL' ? 'Manuel' : f.sourceType}</td><td>{canWrite && f.sourceType === 'MANUAL' ? <button title="Satışı düzenle" aria-label={`${f.productName} satışını düzenle`} onClick={() => setDialog({ kind: 'sales', fact: f })}><Pencil size={16} /></button> : null}</td></tr>)}</tbody></table></div>
+      <section className="operating-history"><div className="costing-record-heading"><h2>Satış Verisi</h2><button onClick={() => setSalesAppOpen((v) => !v)} aria-expanded={salesAppOpen}><Link size={16} />Satış Uygulaması</button>{canWrite ? <button onClick={() => setDialog({ kind: 'sales' })}><Plus size={16} />Satış Ekle</button> : null}</div>
+        {salesAppOpen ? <SalesAppPanel canWrite={canWrite} onClose={() => setSalesAppOpen(false)} /> : null}
+        <div className="costing-table-wrap"><table><thead><tr>{['Tarih', 'Lokasyon', 'Menü ürünü', 'Satış adedi', 'Brüt satış', 'Net satış', 'Kaynak', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.data.sales.map((f) => <tr key={f.id}><td>{f.saleDate}</td><td>{locationName(f.locationId)}</td><th scope="row">{f.productName}</th><td>{costNumber(f.quantity, 4)}</td><td>{money(f.grossSales)}</td><td>{money(f.netSales)}</td><td>{salesSourceLabel(f.sourceType)}</td><td>{canWrite && f.sourceType === 'MANUAL' ? <button title="Satışı düzenle" aria-label={`${f.productName} satışını düzenle`} onClick={() => setDialog({ kind: 'sales', fact: f })}><Pencil size={16} /></button> : null}</td></tr>)}</tbody></table></div>
       </section>
       <section className="operating-history"><div className="costing-record-heading"><h2>İşletme Giderleri</h2>{canWrite ? <button onClick={() => setDialog({ kind: 'expense' })}><Plus size={16} />Gider Ekle</button> : null}</div>
         <div className="costing-table-wrap"><table><thead><tr>{['Tarih', 'Kapsam', 'Kategori', 'Tutar', 'Para birimi', 'Açıklama', 'Durum', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.data.expenses.map((e) => <tr key={e.id} className={e.status === 'VOID' ? 'operating-void' : undefined}><td>{e.occurredOn}</td><td>{locationName(e.locationId)}</td><td>{expenseLabels[e.category]}</td><td>{money(e.amount)}</td><td>{e.currencyCode}</td><td>{e.description}</td><td>{e.status === 'VOID' ? 'İptal (VOID)' : 'Aktif'}</td><td>{canWrite && e.status === 'ACTIVE' && e.sourceType === 'MANUAL' ? <><button title="Gideri düzenle" aria-label={`${e.description} düzenle`} onClick={() => setDialog({ kind: 'expense', expense: e })}><Pencil size={16} /></button><button title="Gideri iptal et" aria-label={`${e.description} iptal et`} onClick={() => setDialog({ kind: 'void', expense: e })}><Ban size={16} /></button></> : null}</td></tr>)}</tbody></table></div>

@@ -1361,6 +1361,206 @@ export type Database = {
           },
         ]
       }
+      sales_app_import_batches: {
+        Row: {
+          business_date: string
+          created_by_user_id: string
+          currency_code: string
+          external_batch_key: string
+          id: string
+          imported_at: string
+          location_id: string
+          mapped_row_count: number
+          metadata: Json
+          provider_key: string
+          row_count: number
+          status: string
+          tenant_id: string
+          unmapped_row_count: number
+        }
+        Insert: {
+          business_date: string
+          created_by_user_id: string
+          currency_code: string
+          external_batch_key: string
+          id?: string
+          imported_at?: string
+          location_id: string
+          mapped_row_count?: number
+          metadata?: Json
+          provider_key?: string
+          row_count: number
+          status: string
+          tenant_id: string
+          unmapped_row_count?: number
+        }
+        Update: {
+          business_date?: string
+          created_by_user_id?: string
+          currency_code?: string
+          external_batch_key?: string
+          id?: string
+          imported_at?: string
+          location_id?: string
+          mapped_row_count?: number
+          metadata?: Json
+          provider_key?: string
+          row_count?: number
+          status?: string
+          tenant_id?: string
+          unmapped_row_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_app_import_batches_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_app_import_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_app_import_rows: {
+        Row: {
+          batch_id: string
+          created_at: string
+          currency_code: string
+          external_product_code: string | null
+          external_product_id: string
+          external_product_name: string
+          gross_sales: number
+          id: string
+          mapping_status: string
+          menu_product_id: string | null
+          net_sales: number
+          quantity: number
+          tenant_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          currency_code: string
+          external_product_code?: string | null
+          external_product_id: string
+          external_product_name: string
+          gross_sales: number
+          id?: string
+          mapping_status: string
+          menu_product_id?: string | null
+          net_sales: number
+          quantity: number
+          tenant_id: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          currency_code?: string
+          external_product_code?: string | null
+          external_product_id?: string
+          external_product_name?: string
+          gross_sales?: number
+          id?: string
+          mapping_status?: string
+          menu_product_id?: string | null
+          net_sales?: number
+          quantity?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_app_import_rows_batch_id_tenant_id_fkey"
+            columns: ["batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "sales_app_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_app_import_rows_menu_product_id_tenant_id_currency_c_fkey"
+            columns: ["menu_product_id", "tenant_id", "currency_code"]
+            isOneToOne: false
+            referencedRelation: "menu_products"
+            referencedColumns: ["id", "tenant_id", "currency_code"]
+          },
+          {
+            foreignKeyName: "sales_app_import_rows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_app_product_mappings: {
+        Row: {
+          created_at: string
+          external_product_code: string | null
+          external_product_id: string
+          external_product_name: string
+          id: string
+          location_id: string | null
+          menu_product_id: string | null
+          provider_key: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_product_code?: string | null
+          external_product_id: string
+          external_product_name: string
+          id?: string
+          location_id?: string | null
+          menu_product_id?: string | null
+          provider_key?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_product_code?: string | null
+          external_product_id?: string
+          external_product_name?: string
+          id?: string
+          location_id?: string | null
+          menu_product_id?: string | null
+          provider_key?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_app_product_mappings_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_app_product_mappings_menu_product_id_tenant_id_fkey"
+            columns: ["menu_product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "menu_products"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_app_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_ledger_entries: {
         Row: {
           amount: number
@@ -1837,6 +2037,10 @@ export type Database = {
         Args: { p_location_id?: string; p_tenant_id: string }
         Returns: Json
       }
+      get_sales_app_integration_overview: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       get_supplier_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
@@ -1845,12 +2049,27 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      import_sales_app_daily_sales: {
+        Args: {
+          p_business_date: string
+          p_currency_code: string
+          p_external_batch_key: string
+          p_location_id: string
+          p_rows: Json
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       post_inventory_count: {
         Args: { p_count_id: string; p_tenant_id: string }
         Returns: string
       }
       post_purchase_invoice: {
         Args: { p_invoice_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      reprocess_sales_app_import_batch: {
+        Args: { p_batch_id: string; p_tenant_id: string }
         Returns: string
       }
       update_finance_account: {
@@ -1943,6 +2162,15 @@ export type Database = {
           p_name: string
           p_portions: number
           p_recipe_id: string
+          p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_sales_app_product_mapping: {
+        Args: {
+          p_mapping_id: string
+          p_menu_product_id?: string
           p_status: string
           p_tenant_id: string
         }

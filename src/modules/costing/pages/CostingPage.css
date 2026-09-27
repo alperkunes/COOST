@@ -36,4 +36,10 @@
 .operating-profitability thead button { border: 0; background: transparent; padding: 0; font: inherit; text-align: left; }
 .operating-void { color: #727980; background: #f5f5f5; }
 .operating-filters input, .operating-filters select { min-width: 0; width: 100%; }
+.sales-app-panel { border-block: 1px solid #dce4e5; padding-block: 16px; margin-block: 16px; }
+.sales-app-actions { display: flex; gap: 8px; }
+.sales-app-actions button { width: 32px; height: 32px; justify-content: center; }
+.sales-app-preview { max-height: 280px; }
+.sales-app-confirm { display: flex; align-items: flex-start; gap: 10px; margin-block: 16px; }
+.sales-app-confirm input { flex-shrink: 0; }
 @media (max-width: 620px) { .costing-fields, .costing-totals { grid-template-columns: 1fr; } .costing-line { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 48px 32px; gap: 6px; } .costing-toolbar { align-items: stretch; } .costing-toolbar [role="tablist"] { width: 100%; } }

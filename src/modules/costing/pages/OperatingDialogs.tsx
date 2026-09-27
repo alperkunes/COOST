@@ -22,7 +22,7 @@ export function SalesDialog({ fact, data, period, onClose }: { fact?: SalesFact;
       {([['quantity', 'Satış adedi'], ['grossSales', 'Brüt satış'], ['netSales', 'Net satış']] as const).map(([key, label]) => <Field key={key} label={label}><input inputMode="decimal" value={input[key]} onChange={(e) => setInput({ ...input, [key]: e.target.value })} /></Field>)}
     </fieldset><p>Kaynak: Manuel · {period.currencyCode}</p>
     {existing && !fact ? <p role="status">Aynı gün, lokasyon ve ürün kaydının mevcut toplamları güncellenecek.</p> : null}
-    <p>Narpos entegrasyonu geldiğinde bu veriler otomatik senkronize edilebilecektir.</p>
+    <p>Satış Uygulaması entegrasyonu geldiğinde bu veriler otomatik senkronize edilebilecektir.</p>
     {mutation.isError ? <p role="alert">{mutation.error.message}</p> : null}
     <button type="submit" disabled={!valid || mutation.isPending}>{mutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}</button>
   </form></Modal>

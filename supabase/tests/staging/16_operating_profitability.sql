@@ -101,7 +101,7 @@ select pg_temp.err($q$delete from public.menu_product_sales_facts where id=pg_te
 select pg_temp.err($q$update public.operating_cost_entries set amount=1 where id=pg_temp.id('void')$q$,'55000');
 select pg_temp.err($q$insert into public.menu_product_sales_facts(tenant_id,location_id,sale_date,menu_product_id,currency_code,quantity,gross_sales,net_sales,source_type) values(pg_temp.t(),pg_temp.loc(),'2026-01-01',pg_temp.id('a'),'TRY',1,1,1,'MANUAL')$q$,'23505');
 select pg_temp.err($q$insert into public.menu_product_sales_facts(tenant_id,location_id,sale_date,menu_product_id,currency_code,quantity,gross_sales,net_sales,source_type) values(pg_temp.t(),pg_temp.loc(),'2026-02-01',pg_temp.id('a'),'EUR',1,1,1,'MANUAL')$q$,'23503');
-insert into public.menu_product_sales_facts(tenant_id,location_id,sale_date,menu_product_id,currency_code,quantity,gross_sales,net_sales,source_type) values(pg_temp.t(),pg_temp.loc(),'2026-02-01',pg_temp.id('a'),'TRY',1,1,1,'NARPOS');
+insert into public.menu_product_sales_facts(tenant_id,location_id,sale_date,menu_product_id,currency_code,quantity,gross_sales,net_sales,source_type) values(pg_temp.t(),pg_temp.loc(),'2026-02-01',pg_temp.id('a'),'TRY',1,1,1,'SALES_APP');
 insert into public.operating_cost_entries(id,tenant_id,occurred_on,currency_code,category,amount,description,source_type) values('d1111111-abcd-4abc-8abc-111111111111',pg_temp.t(),'2026-02-01','TRY','LABOR',1,'External','STAFF');
 delete from public.role_permissions where role_id='d1111111-5555-4555-8555-111111111111' and permission_key not like 'food-service.%';
 set local role authenticated;

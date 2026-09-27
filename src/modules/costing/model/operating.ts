@@ -17,7 +17,7 @@ export type SalesInput = z.input<typeof salesInputSchema>
 export const expenseInputSchema = z.object({ occurredOn: z.iso.date(), locationId: z.union([z.uuid(), z.literal('')]), currencyCode: currency, category, amount: decimal(2), description: z.string().trim().min(2).max(500) })
 export type ExpenseInput = z.input<typeof expenseInputSchema>
 export const salesFactSchema = z.object({ id: z.uuid(), saleDate: z.iso.date(), locationId: z.uuid(), productId: z.uuid(), productName: z.string(), currencyCode: currency,
-  quantity: z.number(), grossSales: z.number(), netSales: z.number(), sourceType: z.enum(['MANUAL', 'NARPOS', 'IMPORT']) })
+  quantity: z.number(), grossSales: z.number(), netSales: z.number(), sourceType: z.enum(['MANUAL', 'SALES_APP', 'IMPORT']) })
 export type SalesFact = z.infer<typeof salesFactSchema>
 export const expenseSchema = z.object({ id: z.uuid(), locationId: z.uuid().nullable(), occurredOn: z.iso.date(), currencyCode: currency, category, amount: z.number(), description: z.string(),
   sourceType: z.enum(['MANUAL', 'FINANCE', 'STAFF', 'POS']), status: z.enum(['ACTIVE', 'VOID']) })
