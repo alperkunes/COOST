@@ -728,6 +728,72 @@ export type Database = {
           },
         ]
       }
+      menu_products: {
+        Row: {
+          category: string | null
+          code: string | null
+          cost_method: string
+          created_at: string
+          currency_code: string
+          id: string
+          name: string
+          recipe_id: string
+          sale_price_gross: number
+          sales_tax_rate: number
+          status: string
+          target_food_cost_pct: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          cost_method?: string
+          created_at?: string
+          currency_code: string
+          id?: string
+          name: string
+          recipe_id: string
+          sale_price_gross: number
+          sales_tax_rate: number
+          status?: string
+          target_food_cost_pct?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          cost_method?: string
+          created_at?: string
+          currency_code?: string
+          id?: string
+          name?: string
+          recipe_id?: string
+          sale_price_gross?: number
+          sales_tax_rate?: number
+          status?: string
+          target_food_cost_pct?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_products_recipe_id_tenant_id_currency_code_fkey"
+            columns: ["recipe_id", "tenant_id", "currency_code"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id", "tenant_id", "currency_code"]
+          },
+          {
+            foreignKeyName: "menu_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outbox_events: {
         Row: {
           aggregate_id: string | null
@@ -979,6 +1045,111 @@ export type Database = {
           },
           {
             foreignKeyName: "purchase_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_lines: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          line_no: number
+          notes: string | null
+          quantity_base: number
+          recipe_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          line_no: number
+          notes?: string | null
+          quantity_base: number
+          recipe_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          line_no?: number
+          notes?: string | null
+          quantity_base?: number
+          recipe_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_lines_inventory_item_id_tenant_id_fkey"
+            columns: ["inventory_item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "recipe_lines_recipe_id_tenant_id_fkey"
+            columns: ["recipe_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "recipe_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string
+          currency_code: string
+          id: string
+          name: string
+          portions: number
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          currency_code: string
+          id?: string
+          name: string
+          portions: number
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          currency_code?: string
+          id?: string
+          name?: string
+          portions?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1387,6 +1558,21 @@ export type Database = {
         }
         Returns: string
       }
+      create_menu_product: {
+        Args: {
+          p_category?: string
+          p_code?: string
+          p_cost_method?: string
+          p_currency_code: string
+          p_name: string
+          p_recipe_id: string
+          p_sale_price_gross: number
+          p_sales_tax_rate: number
+          p_target_food_cost_pct?: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_purchase_invoice_draft: {
         Args: {
           p_currency_code: string
@@ -1397,6 +1583,18 @@ export type Database = {
           p_lines: Json
           p_location_id?: string
           p_supplier_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      create_recipe: {
+        Args: {
+          p_category?: string
+          p_code?: string
+          p_currency_code: string
+          p_lines: Json
+          p_name: string
+          p_portions: number
           p_tenant_id: string
         }
         Returns: string
@@ -1432,6 +1630,14 @@ export type Database = {
         Returns: Json
       }
       get_inventory_context: { Args: { p_tenant_id: string }; Returns: Json }
+      get_inventory_cost_overview: {
+        Args: {
+          p_currency_code: string
+          p_location_id?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_inventory_count_detail: {
         Args: { p_count_id: string; p_tenant_id: string }
         Returns: Json
@@ -1446,6 +1652,10 @@ export type Database = {
         Args: { p_item_id: string; p_tenant_id: string }
         Returns: Json
       }
+      get_menu_costing_overview: {
+        Args: { p_location_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
       get_purchase_invoice_context: {
         Args: { p_tenant_id: string }
@@ -1457,6 +1667,10 @@ export type Database = {
       }
       get_purchase_invoice_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
+        Returns: Json
+      }
+      get_recipe_costing_overview: {
+        Args: { p_location_id?: string; p_tenant_id: string }
         Returns: Json
       }
       get_supplier_overview: {
@@ -1510,6 +1724,23 @@ export type Database = {
         }
         Returns: string
       }
+      update_menu_product: {
+        Args: {
+          p_category?: string
+          p_code?: string
+          p_cost_method: string
+          p_currency_code: string
+          p_name: string
+          p_product_id: string
+          p_recipe_id: string
+          p_sale_price_gross: number
+          p_sales_tax_rate: number
+          p_status: string
+          p_target_food_cost_pct?: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       update_purchase_invoice_draft: {
         Args: {
           p_currency_code: string
@@ -1521,6 +1752,20 @@ export type Database = {
           p_lines: Json
           p_location_id?: string
           p_supplier_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_recipe: {
+        Args: {
+          p_category?: string
+          p_code?: string
+          p_currency_code: string
+          p_lines: Json
+          p_name: string
+          p_portions: number
+          p_recipe_id: string
+          p_status: string
           p_tenant_id: string
         }
         Returns: string

@@ -1,0 +1,29 @@
+.costing-page { min-width: 0; letter-spacing: 0; }
+.costing-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
+.costing-toolbar [role="tablist"] { display: flex; flex-wrap: wrap; gap: 4px; margin-right: auto; }
+.costing-toolbar [role="tab"] { padding: 12px; border: 0; border-bottom: 3px solid transparent; background: transparent; font-weight: 600; }
+.costing-toolbar [aria-selected="true"] { border-bottom-color: #177d6b; color: #116556; }
+.costing-toolbar .finance-dialog-field { max-width: 220px; }
+.costing-table-wrap { overflow-x: auto; max-width: 100%; }
+.costing-page table { border-collapse: collapse; width: 100%; font-size: 13px; text-align: left; }
+.costing-page caption { text-align: left; font-weight: 600; padding: 0 0 16px; font-size: 16px; }
+.costing-page th, .costing-page td { padding: 14px 12px; border-bottom: 1px solid #e3e7eb; vertical-align: top; min-width: 100px; }
+.costing-page thead { background: #f4f6f7; color: #414b55; }
+.costing-page th:first-child { min-width: 170px; }
+.costing-page small { display: block; font-weight: 400; color: #626970; margin-top: 5px; }
+.costing-page button, .costing-dialog button { cursor: pointer; }
+.costing-record-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.costing-record-heading h2 { font-size: 19px; margin-right: auto; }
+.costing-recipe { border-bottom: 2px solid #dce4e5; padding-bottom: 24px; margin-bottom: 24px; }
+.costing-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.costing-totals dt { font-size: 13px; color: #626970; }
+.costing-totals dd { margin: 6px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.costing-warning { border-left: 3px solid #b77719; background: #fff7e7; color: #755010; padding: 12px 16px; }
+.costing-missing { color: #976219 !important; }
+.costing-dialog { width: min(980px, calc(100vw - 32px)); }
+.costing-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; border: 0; padding: 0; margin: 0 0 20px; min-width: 0; }
+.costing-lines { border: 0; margin: 0; padding: 0; min-width: 0; }
+.costing-line { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) 64px 36px; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid #dce4e5; }
+.costing-line-cost { grid-column: 2 / -1; display: grid; gap: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.costing-dialog .finance-dialog-field input { padding-right: 12px; }
+@media (max-width: 620px) { .costing-fields, .costing-totals { grid-template-columns: 1fr; } .costing-line { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 48px 32px; gap: 6px; } .costing-toolbar { align-items: stretch; } .costing-toolbar [role="tablist"] { width: 100%; } }

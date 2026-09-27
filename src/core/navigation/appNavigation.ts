@@ -18,6 +18,7 @@ export const appNavigation: NavigationSection[] = [
     label: 'YÖNETİM',
     items: [
       { label: 'Bugün', path: '/' },
+      { label: 'Maliyet', path: '/costing', requiredModule: 'food-service', requiredPermission: 'food-service.costing.read' },
       {
         label: 'Asistan',
         path: '/assistant',

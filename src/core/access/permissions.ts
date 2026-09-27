@@ -1,4 +1,6 @@
 export const permissionKeys = [
+  'food-service.costing.read',
+  'food-service.costing.write',
   'finance.read',
   'finance.write',
   'suppliers.read',

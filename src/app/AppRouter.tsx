@@ -5,6 +5,7 @@ import { FinancePage } from '../modules/finance/pages/FinancePage'
 import { SupplierPage } from '../modules/suppliers/pages/SupplierPage'
 import { PurchaseInvoicePage } from '../modules/purchasing/pages/PurchaseInvoicePage'
 import { InventoryPage } from '../modules/inventory/pages/InventoryPage'
+import { CostingPage } from '../modules/costing/pages/CostingPage'
 import { RequireAccess } from '../shared/access/RequireAccess'
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage'
 
@@ -14,6 +15,7 @@ export function AppRouter() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
+          <Route path="costing" element={<RequireAccess requiredModule="food-service" requiredPermission="food-service.costing.read"><CostingPage /></RequireAccess>} />
 
           <Route
             path="assistant"
