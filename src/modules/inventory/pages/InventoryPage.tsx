@@ -4,6 +4,7 @@ import { useTenant } from '../../../shared/tenant/useTenant'
 import { useInventoryOverview, useInventoryManagement, useInventoryCounts } from '../queries/useInventory'
 import { units, movementNames, quantityText, countStatusLabels, type InventoryItem } from '../model/inventory'
 import { InventoryItemDialog, InventoryMovementDialog, InventoryCountStartDialog, InventoryCountDialog, InventoryCountCancelDialog } from './InventoryDialogs'
+import { InventoryPurchaseUnitsDialog } from './InventoryPurchaseUnitsDialog'
 import '../../finance/pages/FinancePage.css'
 import './InventoryPage.css'
 
@@ -15,7 +16,7 @@ function InventoryWorkspace() {
   const { context } = useTenant()
   const [locationId, setLocationId] = useState('')
   const [manage, setManage] = useState(false)
-  const [mode, setMode] = useState<{ kind: 'item'; item?: InventoryItem } | { kind: 'movement' | 'start' } | { kind: 'count' | 'cancel'; id: string } | null>(null)
+  const [mode, setMode] = useState<{ kind: 'item'; item?: InventoryItem } | { kind: 'units'; item: InventoryItem } | { kind: 'movement' | 'start' } | { kind: 'count' | 'cancel'; id: string } | null>(null)
   const overview = useInventoryOverview(locationId)
   const management = useInventoryManagement(manage)
   const counts = useInventoryCounts()
@@ -39,11 +40,13 @@ function InventoryWorkspace() {
           <div className="inventory-card-heading"><h3>{item.name}</h3><span>{item.status === 'PASSIVE' ? 'Pasif' : item.isNegative ? 'Negatif Stok' : item.isCritical ? 'Kritik Stok' : 'Normal'}</span></div>
           <strong>{quantityText(item.quantity)} {units[item.baseUnit]}</strong><dl className="finance-account-details"><div><dt>SKU</dt><dd>{item.sku ?? '—'}</dd></div><div><dt>Kategori</dt><dd>{item.category ?? '—'}</dd></div>
             <div><dt>Kritik Seviye</dt><dd>{item.criticalStock == null ? '—' : `${quantityText(item.criticalStock)} ${units[item.baseUnit]}`}</dd></div><div><dt>Durum</dt><dd>{item.status === 'ACTIVE' ? 'Aktif' : 'Pasif'}</dd></div></dl>
-          {canWrite ? <button className="finance-refresh-button" aria-label={`${item.name} düzenle`} onClick={() => setMode({ kind: 'item', item })}>Düzenle</button> : null}</article>)}</div>}
+          {canWrite ? <button className="finance-refresh-button" aria-label={`${item.name} düzenle`} onClick={() => setMode({ kind: 'item', item })}>Düzenle</button> : null}
+          <button className="finance-refresh-button" aria-label={`${item.name} satınalma birimleri`} onClick={() => setMode({ kind: 'units', item })}>Satınalma Birimleri</button></article>)}</div>}
     </section>
     <section className="finance-panel"><div className="finance-panel-heading"><h2>Son Sayımlar</h2></div>{counts.isError ? <div role="alert">{counts.error.message}<button onClick={() => { void counts.refetch() }}>Tekrar dene</button></div> : counts.isPending ? <p>Yükleniyor...</p> : counts.data.counts.length ? <div className="inventory-cards">{counts.data.counts.map((count) => <article className="inventory-card" key={count.id}><h3>{count.locationName}</h3><p>{new Date(count.countedAt).toLocaleString('tr-TR')} · {countStatusLabels[count.status]}</p><button className="finance-refresh-button" onClick={() => setMode({ kind: 'count', id: count.id })}>{count.status === 'DRAFT' && canCount ? 'Sayımı Aç' : 'Görüntüle'}</button>{count.status === 'DRAFT' && canCount ? <button className="finance-refresh-button" onClick={() => setMode({ kind: 'cancel', id: count.id })}>İptal Et</button> : null}</article>)}</div> : <p className="finance-empty-state">Henüz sayım yok.</p>}</section>
-    <section className="finance-panel"><div className="finance-panel-heading"><h2>Son Hareketler</h2></div>{data.recentMovements.length ? <div className="inventory-cards">{data.recentMovements.map((movement) => <article className="inventory-card" key={movement.id}><h3>{movement.itemName}</h3><strong>{movementNames[movement.movementType]} · {quantityText(movement.quantity)}</strong><p>{movement.locationName} · {new Date(movement.occurredAt).toLocaleString('tr-TR')}</p><p>{movement.description}</p></article>)}</div> : <p className="finance-empty-state">Henüz hareket yok.</p>}</section>
+    <section className="finance-panel"><div className="finance-panel-heading"><h2>Son Hareketler</h2></div>{data.recentMovements.length ? <div className="inventory-cards">{data.recentMovements.map((movement) => <article className="inventory-card" key={movement.id}><h3>{movement.itemName}</h3><strong>{movementNames[movement.movementType]} · {quantityText(movement.quantity)}</strong><p>{movement.locationName} · {new Date(movement.occurredAt).toLocaleString('tr-TR')}</p><p>{movement.sourceType === 'PURCHASE_INVOICE' ? <span className="finance-readonly-badge">Fatura</span> : null} {movement.description}</p></article>)}</div> : <p className="finance-empty-state">Henüz hareket yok.</p>}</section>
     {mode?.kind === 'item' && canWrite ? <InventoryItemDialog item={mode.item} onClose={() => setMode(null)} /> : null}
+    {mode?.kind === 'units' ? <InventoryPurchaseUnitsDialog item={mode.item} canWrite={canWrite} onClose={() => setMode(null)} /> : null}
     {mode?.kind === 'movement' && canAdjust ? <InventoryMovementDialog onClose={() => setMode(null)} /> : null}
     {mode?.kind === 'start' && canCount ? <InventoryCountStartDialog onClose={() => setMode(null)} onCreated={(id) => setMode({ kind: 'count', id })} /> : null}
     {mode?.kind === 'count' ? <InventoryCountDialog countId={mode.id} canCount={canCount} canAdjust={canAdjust} onClose={() => setMode(null)} /> : null}

@@ -31,6 +31,6 @@ export function usePostPurchaseInvoice() {
     if (error) throw new Error(purchaseError(error.message))
     if (!data) throw new Error('Fatura işlenemedi.')
     return data
-  }, onSuccess: async () => { await Promise.all(['purchase-invoice-overview', 'purchase-invoice-detail', 'supplier-overview']
+  }, onSuccess: async () => { await Promise.all(['purchase-invoice-overview', 'purchase-invoice-detail', 'supplier-overview', 'inventory-overview', 'inventory-management']
     .map((key) => client.invalidateQueries({ queryKey: [key, tenantId] }))) } })
 }

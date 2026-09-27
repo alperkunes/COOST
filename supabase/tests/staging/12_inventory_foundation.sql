@@ -146,17 +146,18 @@ select set_config('test.draft',public.create_inventory_count(pg_temp.t(),pg_temp
 reset role;
 select pg_temp.expect_error($q$insert into public.inventory_count_lines(tenant_id,count_id,inventory_item_id,system_quantity) values(pg_temp.t(),pg_temp.cnt(),current_setting('test.passive')::uuid,0)$q$,'55000');
 
--- Purchase mapping stays optional, tenant-safe and creates no stock movement on invoice post.
+-- Mapping is tenant-safe; explicitly non-stock lines do not generate movements.
 set local role authenticated;
+select set_config('test.unit',public.create_inventory_purchase_unit(pg_temp.t(),pg_temp.item(),'Gram',1)::text,true);
 select set_config('test.invoice',public.create_purchase_invoice_draft(pg_temp.t(),'91111111-aaaa-4aaa-8aaa-888888888881','STOCK-FK','2026-09-25','TRY',
-  jsonb_build_array(jsonb_build_object('description','Mapped line','unit','kg','quantity',1,'unitPrice',10,'priceIncludesTax',false,'taxRate',0,'inventoryItemId',pg_temp.item()),
-  jsonb_build_object('description','Unmapped line','unit','adet','quantity',1,'unitPrice',10,'priceIncludesTax',false,'taxRate',0)))::text,true);
+  jsonb_build_array(jsonb_build_object('inventoryTracking','MAPPED','inventoryPurchaseUnitId',current_setting('test.unit'),'description','Mapped line','unit','Gram','quantity',1,'unitPrice',10,'priceIncludesTax',false,'taxRate',0,'inventoryItemId',pg_temp.item()),
+  jsonb_build_object('inventoryTracking','NON_STOCK','description','Non-stock line','unit','adet','quantity',1,'unitPrice',10,'priceIncludesTax',false,'taxRate',0)),pg_temp.loc())::text,true);
 select pg_temp.assert_true((select count(*) = 1 from public.purchase_invoice_lines where purchase_invoice_id = current_setting('test.invoice')::uuid and inventory_item_id is null),'null mapping preserved');
-select pg_temp.expect_error($q$select public.create_purchase_invoice_draft(pg_temp.t(),'91111111-aaaa-4aaa-8aaa-888888888881','BAD-FK','2026-09-25','TRY',jsonb_build_array(jsonb_build_object('description','Other tenant','unit','kg','quantity',1,'unitPrice',10,'priceIncludesTax',false,'taxRate',0,'inventoryItemId','92222222-bbbb-4bbb-8bbb-888888888881')))$q$,'23503');
+select pg_temp.expect_error($q$select public.create_purchase_invoice_draft(pg_temp.t(),'91111111-aaaa-4aaa-8aaa-888888888881','BAD-FK','2026-09-25','TRY',jsonb_build_array(jsonb_build_object('inventoryTracking','MAPPED','inventoryPurchaseUnitId',current_setting('test.unit'),'description','Other tenant','unit','kg','quantity',1,'unitPrice',10,'priceIncludesTax',false,'taxRate',0,'inventoryItemId','92222222-bbbb-4bbb-8bbb-888888888881')))$q$,'22023');
 select pg_temp.assert_true(not exists(select 1 from public.purchase_invoices where tenant_id = pg_temp.t() and invoice_number = 'BAD-FK'),'bad mapping rolls back invoice');
 select set_config('test.movement_count',(select count(*)::text from public.inventory_movements where tenant_id = pg_temp.t()),true);
 select public.post_purchase_invoice(pg_temp.t(),current_setting('test.invoice')::uuid);
-select pg_temp.assert_true((select count(*) = current_setting('test.movement_count')::integer from public.inventory_movements where tenant_id = pg_temp.t()),'invoice post no stock');
+select pg_temp.assert_true((select count(*) = current_setting('test.movement_count')::integer + 1 from public.inventory_movements where tenant_id = pg_temp.t()),'only mapped line creates stock');
 reset role;
 select pg_temp.expect_error($q$update public.purchase_invoice_lines set inventory_item_id = null where purchase_invoice_id = current_setting('test.invoice')::uuid$q$,'55000');
 select pg_temp.assert_true(not exists(select 1 from public.finance_transactions where tenant_id = pg_temp.t()),'no finance side effect');

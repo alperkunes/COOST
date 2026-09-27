@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { baseUnitSchema } from '../../inventory/model/inventory'
 
 export function parseInvoiceNumber(value: string, decimals = 4, allowZero = false): number | null {
   const input = value.trim()
@@ -12,7 +13,9 @@ export const invoiceLineInputSchema = z.object({
   description: z.string().trim().min(2).max(300), supplierProductCode: z.string().trim().max(100),
   unit: z.string().trim().min(1).max(30), quantity: decimal(4), unitPrice: decimal(4, true),
   priceIncludesTax: z.boolean(), taxRate: decimal(3, true).pipe(z.number().max(100)), inventoryItemId: z.uuid().nullable(),
-})
+  inventoryTracking: z.enum(['UNMAPPED', 'MAPPED', 'NON_STOCK']), inventoryPurchaseUnitId: z.uuid().nullable(),
+}).refine((line) => line.inventoryTracking === 'MAPPED' ? !!line.inventoryItemId && !!line.inventoryPurchaseUnitId : line.inventoryItemId === null && line.inventoryPurchaseUnitId === null,
+  { message: 'Stok kartı ve satınalma birimi eşleştirmesini kontrol edin.' })
 export type InvoiceLineInput = z.input<typeof invoiceLineInputSchema>
 export type CalculatedLineInput = z.output<typeof invoiceLineInputSchema>
 export const invoiceDraftSchema = z.object({
@@ -22,7 +25,7 @@ export const invoiceDraftSchema = z.object({
 }).refine((value) => !value.dueDate || value.dueDate >= value.invoiceDate, { message: 'Vade tarihi fatura tarihinden önce olamaz.', path: ['dueDate'] })
 export type InvoiceDraftInput = z.input<typeof invoiceDraftSchema>
 export function emptyInvoiceLine(): InvoiceLineInput {
-  return { description: '', supplierProductCode: '', unit: 'adet', quantity: '1', unitPrice: '', priceIncludesTax: false, taxRate: '20', inventoryItemId: null }
+  return { description: '', supplierProductCode: '', unit: 'adet', quantity: '1', unitPrice: '', priceIncludesTax: false, taxRate: '20', inventoryItemId: null, inventoryTracking: 'UNMAPPED', inventoryPurchaseUnitId: null }
 }
 // Integer arithmetic mirrors PostgreSQL numeric rounding; preview only, server is authoritative.
 export function invoiceLineMath(line: CalculatedLineInput) {
@@ -45,6 +48,8 @@ const lineSchema = z.object({
   id: z.uuid(), lineNo: z.number().int(), description: z.string(), supplierProductCode: z.string().nullable(), unit: z.string(),
   quantity: z.number(), unitPrice: z.number(), priceIncludesTax: z.boolean(), taxRate: z.number(),
   netAmount: z.number(), taxAmount: z.number(), grossAmount: z.number(), inventoryItemId: z.uuid().nullable(),
+  inventoryTracking: z.enum(['UNMAPPED', 'MAPPED', 'NON_STOCK']), inventoryPurchaseUnitId: z.uuid().nullable(),
+  inventoryItemName: z.string().nullable().optional(), inventoryBaseUnit: baseUnitSchema.nullable().optional(), inventoryPurchaseUnitName: z.string().nullable().optional(),
 })
 export const invoiceOverviewSchema = z.object({
   tenantId: z.uuid(), summary: z.object({ draftCount: z.number(), postedCount: z.number(),
@@ -54,6 +59,8 @@ export const invoiceDetailSchema = z.object({ tenantId: z.uuid(), invoice: invoi
 export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>
 export const invoiceContextSchema = z.object({ tenantId: z.uuid(),
   suppliers: z.array(z.object({ id: z.uuid(), name: z.string() })), locations: z.array(z.object({ id: z.uuid(), name: z.string() })),
+  inventoryEnabled: z.boolean(), inventoryItems: z.array(z.object({ id: z.uuid(), name: z.string(), baseUnit: baseUnitSchema })),
+  purchaseUnits: z.array(z.object({ id: z.uuid(), itemId: z.uuid(), name: z.string(), conversionToBase: z.number().positive() })),
 })
 export function invoiceFormFromDetail(detail: InvoiceDetail): InvoiceDraftInput {
   return { supplierId: detail.invoice.supplierId, locationId: detail.invoice.locationId ?? '', invoiceNumber: detail.invoice.invoiceNumber,
@@ -72,6 +79,14 @@ const messages: Record<string, string> = {
   PURCHASE_INVOICE_NUMBER_EXISTS: 'Bu tedarikçi için aynı fatura numarası zaten var.', PURCHASE_INVOICE_NO_CHANGES: 'Faturada değişiklik yapılmadı.',
   PURCHASE_INVOICE_IMMUTABLE: 'İşlenmiş fatura değiştirilemez.', PURCHASE_INVOICE_ALREADY_POSTED: 'Bu fatura zaten işlenmiş.',
   PURCHASE_INVOICE_TOTAL_MUST_BE_POSITIVE: 'Faturayı işlemek için genel toplam sıfırdan büyük olmalıdır.',
+  PURCHASE_INVENTORY_MAPPING_INVALID: 'Stok kartı ve satınalma birimi eşleştirmesini kontrol edin.',
+  INVENTORY_MODULE_NOT_AVAILABLE: 'Stok modülü kapalı. Satırları stok dışı seçebilir veya stok modülünü açabilirsiniz.',
+  INVENTORY_ITEM_NOT_AVAILABLE: 'Eşleştirilen stok kartı aktif değil veya bu işletmeye ait değil.',
+  INVENTORY_PURCHASE_UNIT_NOT_AVAILABLE: 'Satınalma birimi aktif değil veya seçilen stok kartına ait değil.',
+  PURCHASE_INVOICE_LINES_UNMAPPED: 'Her satır için Stok Kartına Bağla veya Stok Dışı seçin.',
+  PURCHASE_INVOICE_LOCATION_REQUIRED_FOR_INVENTORY: 'Stok girişi oluşturmak için faturada lokasyon seçin.',
+  PURCHASE_INVENTORY_QUANTITY_OVERFLOW: 'Stoka girecek miktar izin verilen sınırı aşıyor.',
+  PURCHASE_INVENTORY_QUANTITY_PRECISION: 'Stoka girecek miktar en fazla 4 ondalık olmalıdır. Miktar veya dönüşümü kontrol edin.',
 }
 export function purchaseError(message: string) { return messages[message] ?? message }
 export function invoiceMoney(amount: number, currencyCode: string) {

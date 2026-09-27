@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryPage } from '../modules/inventory/pages/InventoryPage'
+import { InventoryPurchaseUnitsDialog } from '../modules/inventory/pages/InventoryPurchaseUnitsDialog'
 import { InventoryItemDialog, InventoryMovementDialog, InventoryCountStartDialog, InventoryCountForm, InventoryCountCancelDialog } from '../modules/inventory/pages/InventoryDialogs'
 import { parseQuantity, itemInputSchema, signedQuantity, countDifference, type InventoryItem, type CountDetail } from '../modules/inventory/model/inventory'
 
@@ -52,6 +53,60 @@ async function movementFields(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText('Lokasyon'), locationId)
   change('Miktar', '1.250,5000'); change('Açıklama', ' Manuel hareket ')
 }
+
+describe('inventory purchase units', () => {
+  const unitId = '91111111-aaaa-4aaa-8aaa-555555555551'
+  function setupUnits(canWrite = true, passive = false) {
+    rpc.mockImplementation(async (name: string) => name === 'get_inventory_purchase_units'
+      ? { data: { tenantId: tenant.tenantId, itemId, units: [{ id: unitId, name: 'KG', conversionToBase: 1000, status: 'ACTIVE' }] }, error: null }
+      : { data: unitId, error: null })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    render(<QueryClientProvider client={client}><InventoryPurchaseUnitsDialog item={passive ? { ...item, status: 'PASSIVE' } : item} canWrite={canWrite} onClose={vi.fn()} /></QueryClientProvider>)
+    return { user: userEvent.setup(), invalidate }
+  }
+  it('creates units, edits conversion/status and refreshes purchasing context', async () => {
+    const { user, invalidate } = setupUnits()
+    expect(await screen.findByText(/1 KG = 1.000 Gram/)).toBeInTheDocument()
+    change('Birim Adı', ' Gram '); change('Baz Birime Dönüşüm', '1')
+    await user.click(screen.getByRole('button', { name: 'Birimi Kaydet' }))
+    await waitFor(() => expect(screen.getByLabelText('Birim Adı')).toHaveValue(''))
+    expect(commands()[0]).toEqual(['create_inventory_purchase_unit', { p_tenant_id: tenant.tenantId, p_item_id: itemId, p_name: 'Gram', p_conversion_to_base: 1 }])
+    await user.click(screen.getByRole('button', { name: 'KG düzenle' }))
+    change('Baz Birime Dönüşüm', '999,5'); await user.selectOptions(screen.getByLabelText('Durum'), 'PASSIVE')
+    await user.click(screen.getByRole('button', { name: 'Birimi Kaydet' }))
+    await waitFor(() => expect(commands()).toHaveLength(2))
+    expect(commands()[1]).toEqual(['update_inventory_purchase_unit', { p_tenant_id: tenant.tenantId, p_purchase_unit_id: unitId, p_name: 'KG', p_conversion_to_base: 999.5, p_status: 'PASSIVE' }])
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['purchase-invoice-context', tenant.tenantId] })
+  })
+  it.each([[false, false], [true, true]])('keeps read-only or passive item units immutable', async (canWrite, passive) => {
+    setupUnits(canWrite, passive)
+    await screen.findByText(/1 KG = 1.000 Gram/)
+    expect(screen.queryByRole('button', { name: 'Birimi Kaydet' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'KG düzenle' })).not.toBeInTheDocument()
+    expect(commands()).toHaveLength(0)
+  })
+  it('validates conversion, prevents duplicate submit and preserves input for retry', async () => {
+    const { user } = setupUnits(); await screen.findByText(/1 KG = 1.000 Gram/)
+    change('Birim Adı', 'Koli')
+    for (const value of ['0', '-1', '0.0000001', '1000000000000']) {
+      change('Baz Birime Dönüşüm', value); expect(screen.getByRole('button', { name: 'Birimi Kaydet' })).toBeDisabled()
+    }
+    change('Baz Birime Dönüşüm', '30')
+    let resolve!: (value: unknown) => void
+    rpc.mockImplementationOnce(() => new Promise((done) => { resolve = done }))
+    const form = screen.getByRole('button', { name: 'Birimi Kaydet' }).closest('form')!
+    act(() => { fireEvent.submit(form); fireEvent.submit(form) })
+    await waitFor(() => expect(commands()).toHaveLength(1))
+    expect(screen.getByRole('button', { name: 'Kapat' })).toBeDisabled()
+    await act(async () => resolve({ data: null, error: { message: 'INVENTORY_PURCHASE_UNIT_DUPLICATE' } }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('aynı satınalma birimi zaten var')
+    expect(screen.getByLabelText('Birim Adı')).toHaveValue('Koli')
+    await user.click(screen.getByRole('button', { name: 'Birimi Kaydet' }))
+    await waitFor(() => expect(screen.getByLabelText('Birim Adı')).toHaveValue(''))
+    expect(commands()).toHaveLength(2)
+  })
+})
 
 describe('inventory quantity and item rules', () => {
   it.each([['1', 1], ['1,5', 1.5], ['1.250,5000', 1250.5], ['1.5', 1.5], ['0,0001', 0.0001]])('parses %s', (input, expected) => expect(parseQuantity(String(input))).toBe(expected))

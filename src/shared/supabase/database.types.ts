@@ -415,6 +415,7 @@ export type Database = {
           occurred_at: string
           quantity: number
           source_id: string | null
+          source_line_id: string | null
           source_type: string | null
           tenant_id: string
         }
@@ -429,6 +430,7 @@ export type Database = {
           occurred_at?: string
           quantity: number
           source_id?: string | null
+          source_line_id?: string | null
           source_type?: string | null
           tenant_id: string
         }
@@ -443,10 +445,18 @@ export type Database = {
           occurred_at?: string
           quantity?: number
           source_id?: string | null
+          source_line_id?: string | null
           source_type?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_invoice_line_fk"
+            columns: ["source_line_id", "source_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_invoice_lines"
+            referencedColumns: ["id", "purchase_invoice_id", "tenant_id"]
+          },
           {
             foreignKeyName: "inventory_movements_inventory_item_id_tenant_id_fkey"
             columns: ["inventory_item_id", "tenant_id"]
@@ -463,6 +473,54 @@ export type Database = {
           },
           {
             foreignKeyName: "inventory_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_purchase_units: {
+        Row: {
+          conversion_to_base: number
+          created_at: string
+          id: string
+          inventory_item_id: string
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          conversion_to_base: number
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          conversion_to_base?: number
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_purchase_units_inventory_item_id_tenant_id_fkey"
+            columns: ["inventory_item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "inventory_purchase_units_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -751,6 +809,8 @@ export type Database = {
           gross_amount: number
           id: string
           inventory_item_id: string | null
+          inventory_purchase_unit_id: string | null
+          inventory_tracking: string
           line_no: number
           net_amount: number
           price_includes_tax: boolean
@@ -770,6 +830,8 @@ export type Database = {
           gross_amount: number
           id?: string
           inventory_item_id?: string | null
+          inventory_purchase_unit_id?: string | null
+          inventory_tracking?: string
           line_no: number
           net_amount: number
           price_includes_tax: boolean
@@ -789,6 +851,8 @@ export type Database = {
           gross_amount?: number
           id?: string
           inventory_item_id?: string | null
+          inventory_purchase_unit_id?: string | null
+          inventory_tracking?: string
           line_no?: number
           net_amount?: number
           price_includes_tax?: boolean
@@ -823,6 +887,17 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_line_unit_item_tenant_fk"
+            columns: [
+              "inventory_purchase_unit_id",
+              "inventory_item_id",
+              "tenant_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "inventory_purchase_units"
+            referencedColumns: ["id", "inventory_item_id", "tenant_id"]
           },
         ]
       }
@@ -1303,6 +1378,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_inventory_purchase_unit: {
+        Args: {
+          p_conversion_to_base: number
+          p_item_id: string
+          p_name: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_purchase_invoice_draft: {
         Args: {
           p_currency_code: string
@@ -1358,6 +1442,10 @@ export type Database = {
         Args: { p_location_id?: string; p_tenant_id: string }
         Returns: Json
       }
+      get_inventory_purchase_units: {
+        Args: { p_item_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
       get_purchase_invoice_context: {
         Args: { p_tenant_id: string }
@@ -1407,6 +1495,16 @@ export type Database = {
           p_item_id: string
           p_name: string
           p_sku?: string
+          p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_inventory_purchase_unit: {
+        Args: {
+          p_conversion_to_base: number
+          p_name: string
+          p_purchase_unit_id: string
           p_status: string
           p_tenant_id: string
         }

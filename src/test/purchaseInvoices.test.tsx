@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PurchaseInvoicePage } from '../modules/purchasing/pages/PurchaseInvoicePage'
 import { PurchaseInvoiceForm, PurchaseInvoicePostDialog } from '../modules/purchasing/pages/PurchaseInvoiceDialogs'
-import { invoiceLineMath, parseInvoiceNumber, type InvoiceDetail, type CalculatedLineInput } from '../modules/purchasing/model/purchaseInvoices'
+import { invoiceLineMath, invoiceLineInputSchema, emptyInvoiceLine, parseInvoiceNumber, type InvoiceDetail, type CalculatedLineInput } from '../modules/purchasing/model/purchaseInvoices'
+import { inventoryReceiptPreview } from '../modules/inventory/model/inventory'
 
 const { rpc, tenant } = vi.hoisted(() => ({ rpc: vi.fn(), tenant: {
   tenantId: '81111111-aaaa-4aaa-8aaa-111111111111', context: { modules: ['purchasing', 'suppliers'], permissions: ['purchasing.read'] },
@@ -19,14 +20,14 @@ const detail: InvoiceDetail = { tenantId: tenant.tenantId, invoice: {
   id: invoiceId, supplierId, supplierName: 'Tedarikçi A', locationId: null, locationName: null, invoiceNumber: 'INV-1', invoiceDate: '2026-09-25',
   dueDate: null, currencyCode: 'TRY', status: 'DRAFT', subtotal: 101, taxTotal: 0, grandTotal: 101, description: 'Fatura notu', lineCount: 1, postedAt: null,
 }, lines: [{ id: '81111111-aaaa-4aaa-8aaa-666666666661', lineNo: 1, description: 'Un alımı', supplierProductCode: 'SKU-1', unit: 'kg',
-  quantity: 1, unitPrice: 101, priceIncludesTax: false, taxRate: 0, netAmount: 101, taxAmount: 0, grossAmount: 101, inventoryItemId: null }] }
+  quantity: 1, unitPrice: 101, priceIncludesTax: false, taxRate: 0, netAmount: 101, taxAmount: 0, grossAmount: 101, inventoryItemId: null, inventoryTracking: 'NON_STOCK', inventoryPurchaseUnitId: null }] }
 const postedDetail: InvoiceDetail = { ...detail, invoice: { ...detail.invoice, id: postedId, invoiceNumber: 'INV-2', status: 'POSTED', postedAt: '2026-09-25T12:00:00Z' } }
 beforeEach(() => {
   rpc.mockReset()
   tenant.context.permissions = ['purchasing.read']
   tenant.context.modules = ['purchasing', 'suppliers']
   rpc.mockImplementation(async (name: string, args: { p_invoice_id?: string }) => {
-    if (name === 'get_purchase_invoice_context') return { data: { tenantId: tenant.tenantId, suppliers: [{ id: supplierId, name: 'Tedarikçi A' }], locations: [{ id: locationId, name: 'Merkez' }] }, error: null }
+    if (name === 'get_purchase_invoice_context') return { data: { tenantId: tenant.tenantId, inventoryEnabled: true, inventoryItems: [], purchaseUnits: [], suppliers: [{ id: supplierId, name: 'Tedarikçi A' }], locations: [{ id: locationId, name: 'Merkez' }] }, error: null }
     if (name === 'get_purchase_invoice_overview') return { data: { tenantId: tenant.tenantId, summary: { draftCount: 1, postedCount: 1, postedTotals: [{ currencyCode: 'TRY', amount: 101 }] }, invoices: [detail.invoice, postedDetail.invoice] }, error: null }
     if (name === 'get_purchase_invoice_detail') return { data: args.p_invoice_id === postedId ? postedDetail : detail, error: null }
     return { data: invoiceId, error: null }
@@ -50,11 +51,12 @@ async function fill(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Malzeme / Ürün Açıklaması 1'), 'Un alımı')
   fireEvent.change(screen.getByLabelText('Miktar 1'), { target: { value: '1,2345' } })
   await user.type(screen.getByLabelText('Birim Fiyat 1'), '10,00')
+  await user.selectOptions(screen.getByLabelText('Stok İşlemi 1'), 'NON_STOCK')
 }
 
 describe('purchase line calculations', () => {
   const line: CalculatedLineInput = { description: 'Test line', supplierProductCode: '', unit: 'kg', quantity: 2, unitPrice: 10,
-    priceIncludesTax: false, taxRate: 20, inventoryItemId: null }
+    priceIncludesTax: false, taxRate: 20, inventoryItemId: null, inventoryTracking: 'NON_STOCK', inventoryPurchaseUnitId: null }
   it('calculates tax-exclusive money', () => { expect(invoiceLineMath(line)).toEqual({ netAmount: 20, taxAmount: 4, grossAmount: 24 }) })
   it('calculates tax-inclusive money', () => { expect(invoiceLineMath({ ...line, unitPrice: 12, priceIncludesTax: true })).toEqual({ netAmount: 20, taxAmount: 4, grossAmount: 24 }) })
   it('rounds four-decimal quantity to cents at line level', () => { expect(invoiceLineMath({ ...line, quantity: 1.2345, taxRate: 0 })).toEqual({ netAmount: 12.35, taxAmount: 0, grossAmount: 12.35 }) })
@@ -74,7 +76,7 @@ describe('invoice drafts', () => {
     expect(commands()).toEqual([['create_purchase_invoice_draft', {
       p_tenant_id: tenant.tenantId, p_supplier_id: supplierId, p_invoice_number: 'NEW-1', p_invoice_date: '2026-09-25',
       p_currency_code: 'TRY', p_location_id: locationId, p_due_date: undefined, p_description: undefined,
-      p_lines: [{ description: 'Un alımı', supplierProductCode: '', unit: 'adet', quantity: 1.2345, unitPrice: 10, priceIncludesTax: false, taxRate: 20, inventoryItemId: null }],
+      p_lines: [{ description: 'Un alımı', supplierProductCode: '', unit: 'adet', quantity: 1.2345, unitPrice: 10, priceIncludesTax: false, taxRate: 20, inventoryItemId: null, inventoryTracking: 'NON_STOCK', inventoryPurchaseUnitId: null }],
     }]])
     expect(rpc).toHaveBeenCalledWith('get_purchase_invoice_context', { p_tenant_id: tenant.tenantId })
     expect(rpc).not.toHaveBeenCalledWith('get_supplier_overview', expect.anything())
@@ -135,6 +137,50 @@ describe('invoice drafts', () => {
   })
 })
 
+describe('invoice inventory integration', () => {
+  const itemId = '81111111-aaaa-4aaa-8aaa-555555555551'
+  const unitId = '81111111-aaaa-4aaa-8aaa-555555555552'
+  it.each([[2.5, 1000, 2500], [1.25, 1000, 1250], [2, 30, 60], [100, 0.000001, 0.0001], [1, 0.000001, null], [100000000, 100000, null]])('previews %s times %s', (quantity, conversion, expected) => {
+    expect(inventoryReceiptPreview(quantity!, conversion!)).toBe(expected)
+  })
+  it('validates all three tracking states without silently dropping references', () => {
+    const line = { ...emptyInvoiceLine(), description: 'Test item', unitPrice: '10' }
+    expect(invoiceLineInputSchema.safeParse(line).success).toBe(true)
+    expect(invoiceLineInputSchema.safeParse({ ...line, inventoryTracking: 'NON_STOCK' }).success).toBe(true)
+    expect(invoiceLineInputSchema.safeParse({ ...line, inventoryTracking: 'MAPPED' }).success).toBe(false)
+    expect(invoiceLineInputSchema.safeParse({ ...line, inventoryTracking: 'MAPPED', inventoryItemId: itemId, inventoryPurchaseUnitId: unitId }).success).toBe(true)
+    for (const inventoryTracking of ['UNMAPPED', 'NON_STOCK']) expect(invoiceLineInputSchema.safeParse({ ...line, inventoryTracking, inventoryItemId: itemId }).success).toBe(false)
+  })
+  it('selects an item and unit, previews conversion and sends mapping RPC args', async () => {
+    rpc.mockResolvedValueOnce({ data: { tenantId: tenant.tenantId, inventoryEnabled: true,
+      suppliers: [{ id: supplierId, name: 'Tedarikçi A' }], locations: [{ id: locationId, name: 'Merkez' }],
+      inventoryItems: [{ id: itemId, name: 'Et', baseUnit: 'GRAM' }], purchaseUnits: [{ id: unitId, itemId, name: 'KG', conversionToBase: 1000 }] }, error: null })
+    const { user, onClose } = setup('create'); await fill(user)
+    await user.selectOptions(screen.getByLabelText('Stok İşlemi 1'), 'MAPPED')
+    expect(screen.getByRole('button', { name: 'Taslağı Kaydet' })).toBeDisabled()
+    await user.selectOptions(screen.getByLabelText('Stok Kartı 1'), itemId)
+    await user.selectOptions(screen.getByLabelText('Satınalma Birimi 1'), unitId)
+    fireEvent.change(screen.getByLabelText('Miktar 1'), { target: { value: '2,5' } })
+    expect(screen.getByText('1 KG = 1.000 Gram')).toBeInTheDocument()
+    expect(screen.getByText(/Stoka girecek: 2.500 Gram/)).toBeInTheDocument()
+    expect(screen.getByText(/lokasyon seçin/)).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Lokasyon'), locationId)
+    await user.click(screen.getByRole('button', { name: 'Taslağı Kaydet' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(commands()[0][1]).toMatchObject({ p_location_id: locationId, p_lines: [expect.objectContaining({ inventoryTracking: 'MAPPED', inventoryItemId: itemId, inventoryPurchaseUnitId: unitId, quantity: 2.5, unit: 'KG' })] })
+  })
+  it.each([['PURCHASE_INVOICE_LINES_UNMAPPED', 'Her satır için'], ['PURCHASE_INVOICE_LOCATION_REQUIRED_FOR_INVENTORY', 'lokasyon seçin']])('shows %s and permits retry', async (message, text) => {
+    const { user, onClose } = setup('post')
+    rpc.mockResolvedValueOnce({ data: null, error: { message } })
+    expect(screen.getByText(/Stok kartına bağlı satırlar/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Onayla ve İşle' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(text)
+    expect(onClose).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Onayla ve İşle' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+  })
+})
+
 describe('invoice access and posting', () => {
   it('read-only page exposes view only, fetching lines only for selected detail', async () => {
     const { user } = setup()
@@ -173,7 +219,7 @@ describe('invoice access and posting', () => {
     await user.click(dialog.getByRole('button', { name: 'Onayla ve İşle' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(commands()).toEqual([['post_purchase_invoice', { p_tenant_id: tenant.tenantId, p_invoice_id: invoiceId }]])
-    for (const key of ['purchase-invoice-overview', 'purchase-invoice-detail', 'supplier-overview']) expect(invalidate).toHaveBeenCalledWith({ queryKey: [key, tenant.tenantId] })
+    for (const key of ['purchase-invoice-overview', 'purchase-invoice-detail', 'supplier-overview', 'inventory-overview', 'inventory-management']) expect(invalidate).toHaveBeenCalledWith({ queryKey: [key, tenant.tenantId] })
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['finance-overview', tenant.tenantId] })
   })
   it('cancelling confirmation makes no post call', async () => {

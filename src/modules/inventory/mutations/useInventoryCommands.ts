@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../shared/supabase/client'
 import { useTenant } from '../../../shared/tenant/useTenant'
-import { itemInputSchema, movementInputSchema, inventoryError, type ItemInput, type MovementInput } from '../model/inventory'
+import { itemInputSchema, movementInputSchema, purchaseUnitInputSchema, inventoryError, type ItemInput, type MovementInput, type PurchaseUnitInput } from '../model/inventory'
 
 function useInventoryCommand<T>(command: (tenantId: string, input: T) => PromiseLike<{ data: string | null; error: { message: string } | null }>) {
   const { tenantId } = useTenant()
@@ -12,7 +12,7 @@ function useInventoryCommand<T>(command: (tenantId: string, input: T) => Promise
     if (error) throw new Error(inventoryError(error.message))
     if (!data) throw new Error('İşlem tamamlanamadı.')
     return data
-  }, onSuccess: async () => { await Promise.all(['inventory-overview', 'inventory-management', 'inventory-context', 'inventory-counts', 'inventory-count-detail']
+  }, onSuccess: async () => { await Promise.all(['inventory-overview', 'inventory-management', 'inventory-context', 'inventory-counts', 'inventory-count-detail', 'inventory-purchase-units', 'purchase-invoice-context']
     .map((key) => client.invalidateQueries({ queryKey: [key, tenantId] }))) } })
 }
 export function useSaveInventoryItem() {
@@ -42,4 +42,12 @@ export function usePostInventoryCount() {
 }
 export function useCancelInventoryCount() {
   return useInventoryCommand((tenantId, countId: string) => supabase.rpc('cancel_inventory_count', { p_tenant_id: tenantId, p_count_id: countId }))
+}
+export function useSaveInventoryPurchaseUnit() {
+  return useInventoryCommand((tenantId, { itemId, unitId, input }: { itemId: string; unitId?: string; input: PurchaseUnitInput }) => {
+    const value = purchaseUnitInputSchema.parse(input)
+    const args = { p_tenant_id: tenantId, p_name: value.name, p_conversion_to_base: value.conversion }
+    return unitId ? supabase.rpc('update_inventory_purchase_unit', { ...args, p_purchase_unit_id: unitId, p_status: value.status })
+      : supabase.rpc('create_inventory_purchase_unit', { ...args, p_item_id: itemId })
+  })
 }

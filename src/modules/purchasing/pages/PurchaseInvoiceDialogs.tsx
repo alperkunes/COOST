@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { usePurchaseInvoiceContext, usePurchaseInvoiceDetail } from '../queries/usePurchaseInvoices'
 import { useSavePurchaseDraft, usePostPurchaseInvoice } from '../mutations/usePurchaseInvoiceCommands'
+import { units, quantityText, inventoryReceiptPreview } from '../../inventory/model/inventory'
 import { emptyInvoiceLine, invoiceDraftSchema, invoiceLineInputSchema, invoiceLineMath, invoiceFormFromDetail,
   invoiceMoney, type InvoiceDraftInput, type InvoiceLineInput, type InvoiceDetail, type InvoiceHeader } from '../model/purchaseInvoices'
 
@@ -33,9 +34,12 @@ export function PurchaseInvoiceForm({ detail, readOnly = false, onClose }: { det
       taxAmount: sum.taxAmount + line!.taxAmount, grossAmount: sum.grossAmount + line!.grossAmount }), { netAmount: 0, taxAmount: 0, grossAmount: 0 }) : null
   const supplierAvailable = context.data?.suppliers.some((supplier) => supplier.id === input.supplierId)
   const locationAvailable = !input.locationId || context.data?.locations.some((location) => location.id === input.locationId)
+  const mappingsAvailable = input.lines.every((line) => line.inventoryTracking !== 'MAPPED' || (context.data?.inventoryEnabled
+    && context.data.inventoryItems.some((item) => item.id === line.inventoryItemId)
+    && context.data.purchaseUnits.some((unit) => unit.id === line.inventoryPurchaseUnitId && unit.itemId === line.inventoryItemId)))
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (locked || !parsed.success || !supplierAvailable || !locationAvailable || context.isError || submitting.current || mutation.isPending) return
+    if (locked || !parsed.success || !supplierAvailable || !locationAvailable || !mappingsAvailable || context.isError || submitting.current || mutation.isPending) return
     submitting.current = true
     try { await mutation.mutateAsync({ invoiceId: detail?.invoice.id, input }); onClose() }
     catch { /* Keep entered headers and lines for retry. */ }
@@ -71,13 +75,34 @@ export function PurchaseInvoiceForm({ detail, readOnly = false, onClose }: { det
         <label className="finance-dialog-field"><span>Açıklama</span><textarea rows={2} maxLength={2000} value={input.description} onChange={(event) => setInput({ ...input, description: event.target.value })} /></label>
         <div className="purchase-line-list">{input.lines.map((line, index) => {
           const amounts = locked && detail ? detail.lines[index] : preview[index]
+          const inventoryItem = context.data?.inventoryItems.find((item) => item.id === line.inventoryItemId)
+          const purchaseUnit = context.data?.purchaseUnits.find((unit) => unit.id === line.inventoryPurchaseUnitId && unit.itemId === line.inventoryItemId)
+          const parsedLine = invoiceLineInputSchema.safeParse(line)
+          const baseQuantity = parsedLine.success && purchaseUnit ? inventoryReceiptPreview(parsedLine.data.quantity, purchaseUnit.conversionToBase) : null
           return <section className="purchase-line" key={index} aria-label={`Fatura satırı ${index + 1}`}>
             <div className="purchase-line-heading"><strong>Satır {index + 1}</strong>{!locked ? <button type="button" className="finance-adjust-button" disabled={input.lines.length === 1}
               onClick={() => setInput({ ...input, lines: input.lines.filter((_, i) => i !== index) })}>Satır {index + 1} kaldır</button> : null}</div>
             <div className="purchase-line-grid">{lineFields.map(([key, label]) => <label className="finance-dialog-field" key={key}><span>{label}</span>
               <input aria-label={`${label} ${index + 1}`} required={key !== 'supplierProductCode'} inputMode={['quantity', 'unitPrice', 'taxRate'].includes(key) ? 'decimal' : 'text'}
+                readOnly={key === 'unit' && line.inventoryTracking === 'MAPPED'}
                 value={line[key]} onChange={(event) => lineChange(index, { [key]: event.target.value })} /></label>)}</div>
             <label className="purchase-tax-checkbox"><input type="checkbox" checked={line.priceIncludesTax} onChange={(event) => lineChange(index, { priceIncludesTax: event.target.checked })} aria-label={`KDV Dahil ${index + 1}`} />KDV Dahil</label>
+            <div className="purchase-line-grid">
+              <label className="finance-dialog-field"><span>Stok İşlemi</span><select aria-label={`Stok İşlemi ${index + 1}`} value={line.inventoryTracking}
+                onChange={(event) => lineChange(index, { inventoryTracking: event.target.value as InvoiceLineInput['inventoryTracking'], inventoryItemId: null, inventoryPurchaseUnitId: null })}>
+                <option value="UNMAPPED">Henüz Eşleştirilmedi</option><option value="MAPPED" disabled={!locked && !context.data?.inventoryEnabled}>Stok Kartına Bağla</option><option value="NON_STOCK">Stok Dışı</option></select></label>
+              {line.inventoryTracking === 'MAPPED' ? <><label className="finance-dialog-field"><span>Stok Kartı</span><select aria-label={`Stok Kartı ${index + 1}`} value={line.inventoryItemId ?? ''}
+                onChange={(event) => lineChange(index, { inventoryItemId: event.target.value || null, inventoryPurchaseUnitId: null })}><option value="">Stok kartı seçin</option>
+                {line.inventoryItemId && !inventoryItem ? <option value={line.inventoryItemId} disabled={!locked}>{detail?.lines[index]?.inventoryItemName ?? 'Kullanılamayan stok kartı'}</option> : null}
+                {context.data?.inventoryItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+                <label className="finance-dialog-field"><span>Satınalma Birimi</span><select aria-label={`Satınalma Birimi ${index + 1}`} value={line.inventoryPurchaseUnitId ?? ''}
+                  onChange={(event) => { const unit = context.data?.purchaseUnits.find((value) => value.id === event.target.value); lineChange(index, { inventoryPurchaseUnitId: unit?.id ?? null, unit: unit?.name ?? line.unit }) }}><option value="">Birim seçin</option>
+                  {line.inventoryPurchaseUnitId && !purchaseUnit ? <option value={line.inventoryPurchaseUnitId} disabled={!locked}>{detail?.lines[index]?.inventoryPurchaseUnitName ?? 'Kullanılamayan satınalma birimi'}</option> : null}
+                  {context.data?.purchaseUnits.filter((unit) => unit.itemId === line.inventoryItemId).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></label></> : null}
+            </div>
+            {!locked && inventoryItem && purchaseUnit ? <div className="finance-dialog-info"><span>1 {purchaseUnit.name} = {new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 6 }).format(purchaseUnit.conversionToBase)} {units[inventoryItem.baseUnit]}</span>
+              <p>Fatura miktarı: {line.quantity} {purchaseUnit.name} · Stoka girecek: {baseQuantity == null ? 'Miktar veya dönüşümü kontrol edin (en fazla 4 ondalık).' : `${quantityText(baseQuantity)} ${units[inventoryItem.baseUnit]}`}</p></div> : null}
+            {!locked && line.inventoryTracking === 'MAPPED' && !input.locationId ? <p className="finance-dialog-info">Stok girişi için faturayı işlemeden önce lokasyon seçin.</p> : null}
             <div className="purchase-line-totals"><span>Net: {amounts ? invoiceMoney(amounts.netAmount, input.currencyCode) : '—'}</span>
               <span>KDV: {amounts ? invoiceMoney(amounts.taxAmount, input.currencyCode) : '—'}</span><strong>Toplam: {amounts ? invoiceMoney(amounts.grossAmount, input.currencyCode) : '—'}</strong></div>
           </section>
@@ -89,7 +114,7 @@ export function PurchaseInvoiceForm({ detail, readOnly = false, onClose }: { det
       {!locked && !parsed.success ? <div className="finance-dialog-info" role="status">Başlık ve satır alanlarını kontrol edin. Miktar pozitif; birim fiyat sıfır veya pozitif olmalıdır. Miktar ve birim fiyat en fazla 4, KDV oranı en fazla 3 ondalık kabul eder. Vade fatura tarihinden önce olamaz.</div> : null}
       {mutation.isError ? <div role="alert" className="finance-dialog-error">{mutation.error.message}</div> : null}
       <div className="finance-dialog-actions"><button type="button" disabled={mutation.isPending} onClick={onClose}>{locked ? 'Kapat' : 'Vazgeç'}</button>
-        {!locked ? <button type="submit" className="primary" disabled={!parsed.success || !supplierAvailable || !locationAvailable || context.isError || mutation.isPending}>{mutation.isPending ? 'Kaydediliyor...' : 'Taslağı Kaydet'}</button> : null}</div>
+        {!locked ? <button type="submit" className="primary" disabled={!parsed.success || !supplierAvailable || !locationAvailable || !mappingsAvailable || context.isError || mutation.isPending}>{mutation.isPending ? 'Kaydediliyor...' : 'Taslağı Kaydet'}</button> : null}</div>
     </form>
   </Modal>
 }
@@ -114,6 +139,7 @@ export function PurchaseInvoicePostDialog({ invoice, onClose }: { invoice: Invoi
   return <Modal title="Faturayı İşle" busy={mutation.isPending} onClose={onClose}><form onSubmit={submit}>
     <strong>{invoice.supplierName} · {invoice.invoiceNumber}</strong><strong>{invoiceMoney(invoice.grandTotal, invoice.currencyCode)}</strong>
     <p>Bu işlem tedarikçi borcunu artıracaktır ve işlendiğinde fatura değiştirilemez.</p>
+    <p>Stok kartına bağlı satırlar, seçilen lokasyona stok girişi oluşturacaktır. Her satır eşleştirilmeli veya Stok Dışı seçilmelidir.</p>
     {mutation.isError ? <div role="alert" className="finance-dialog-error">{mutation.error.message}</div> : null}
     <div className="finance-dialog-actions"><button type="button" disabled={mutation.isPending} onClick={onClose}>Vazgeç</button>
       <button type="submit" className="primary" disabled={mutation.isPending || invoice.status !== 'DRAFT'}>{mutation.isPending ? 'İşleniyor...' : 'Onayla ve İşle'}</button></div>

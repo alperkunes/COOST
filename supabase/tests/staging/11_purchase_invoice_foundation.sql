@@ -303,8 +303,8 @@ insert into public.locations(id,tenant_id,name,status) values
 ('82222222-bbbb-4bbb-8bbb-999999999991','82222222-bbbb-4bbb-8bbb-222222222222','Other location','ACTIVE');
 insert into public.supplier_ledger_entries(tenant_id,supplier_id,entry_type,currency_code,amount,occurred_at,description,source_type,created_by_user_id)
 values('81111111-aaaa-4aaa-8aaa-111111111111','81111111-aaaa-4aaa-8aaa-888888888881','ADJUSTMENT','TRY',-1,now(),'Existing advance','TEST','81111111-6666-4666-8666-111111111111');
-select set_config('test.lines','[{"description":"Exclusive line","unit":"adet","quantity":2,"unitPrice":10,"priceIncludesTax":false,"taxRate":20,"netAmount":99999},{"description":"Inclusive line","unit":"kg","quantity":1,"unitPrice":12,"priceIncludesTax":true,"taxRate":20},{"description":"Fractional line","unit":"kg","quantity":1.2345,"unitPrice":10,"priceIncludesTax":false,"taxRate":0}]',true);
-select set_config('test.single','[{"description":"Invoice line","supplierProductCode":"SKU-1","unit":"adet","quantity":1,"unitPrice":101,"priceIncludesTax":false,"taxRate":0}]',true);
+select set_config('test.lines','[{"inventoryTracking":"NON_STOCK","description":"Exclusive line","unit":"adet","quantity":2,"unitPrice":10,"priceIncludesTax":false,"taxRate":20,"netAmount":99999},{"inventoryTracking":"NON_STOCK","description":"Inclusive line","unit":"kg","quantity":1,"unitPrice":12,"priceIncludesTax":true,"taxRate":20},{"inventoryTracking":"NON_STOCK","description":"Fractional line","unit":"kg","quantity":1.2345,"unitPrice":10,"priceIncludesTax":false,"taxRate":0}]',true);
+select set_config('test.single','[{"inventoryTracking":"NON_STOCK","description":"Invoice line","supplierProductCode":"SKU-1","unit":"adet","quantity":1,"unitPrice":101,"priceIncludesTax":false,"taxRate":0}]',true);
 set local role authenticated;
 select set_config('request.jwt.claim.sub','81111111-6666-4666-8666-111111111111',true);
 select set_config('test.invoice',public.create_purchase_invoice_draft('81111111-aaaa-4aaa-8aaa-111111111111','81111111-aaaa-4aaa-8aaa-888888888881',
@@ -396,7 +396,7 @@ begin
     and (metadata->>'lineCount')::int = 1 and (metadata->>'grandTotal')::numeric = 101),'update audit no redundant events');
   perform pg_temp.assert_true((select count(*) = 1 from public.audit_logs where entity_id = inv and action = 'PURCHASE_INVOICE_POSTED'
     and actor_user_id = '81111111-6666-4666-8666-111111111111' and metadata = jsonb_build_object('invoiceId',inv,
-      'supplierId','81111111-aaaa-4aaa-8aaa-888888888881','invoiceNumber','INV-1','currencyCode','TRY','subtotal',101,'taxTotal',0,'grandTotal',101,'lineCount',1)),'post audit');
+      'supplierId','81111111-aaaa-4aaa-8aaa-888888888881','invoiceNumber','INV-1','currencyCode','TRY','subtotal',101,'taxTotal',0,'grandTotal',101,'lineCount',1,'inventoryReceiptCount',0,'inventoryReceipts','[]'::jsonb)),'post audit');
   perform pg_temp.assert_true((select count(*) = 2 from public.purchase_invoices where tenant_id = t)
     and (select count(*) = 2 from public.purchase_invoice_lines where tenant_id = t),'rejected creates leave no partial state');
 end;

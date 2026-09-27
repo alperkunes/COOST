@@ -3,9 +3,9 @@ import { z } from 'zod'
 export const units = { GRAM: 'Gram', MILLILITER: 'Mililitre', EACH: 'Adet' } as const
 export const countStatusLabels = { DRAFT: 'Taslak', POSTED: 'İşlendi', CANCELLED: 'İptal Edildi' } as const
 export const movementNames = { RECEIPT: 'Giriş', ISSUE: 'Çıkış', WASTE: 'Fire', COMPLIMENTARY: 'İkram', MANUAL_ADJUSTMENT: 'Manuel Düzeltme', COUNT_ADJUSTMENT: 'Sayım Farkı' } as const
-export function parseQuantity(value: string, allowZero = false): number | null {
+export function parseQuantity(value: string, allowZero = false, decimals = 4): number | null {
   const input = value.trim()
-  if (!/^(?:\d+(?:[.,]\d{1,4})?|\d{1,3}(?:\.\d{3})+,\d{1,4})$/.test(input)) return null
+  if (!new RegExp(`^(?:\\d+(?:[.,]\\d{1,${decimals}})?|\\d{1,3}(?:\\.\\d{3})+,\\d{1,${decimals}})$`).test(input)) return null
   const result = Number(input.includes(',') ? input.replace(/\./g, '').replace(',', '.') : input)
   return Number.isFinite(result) && result < 1e12 && (allowZero ? result >= 0 : result > 0) ? result : null
 }
@@ -44,6 +44,18 @@ export const countDetailSchema = z.object({ tenantId: z.uuid(), id: z.uuid(), lo
   countedAt: z.string(), notes: z.string().nullable(), postedAt: z.string().nullable(), cancelledAt: z.string().nullable(), cancelledBy: z.uuid().nullable(),
   lines: z.array(z.object({ itemId: z.uuid(), itemName: z.string(), baseUnit: baseUnitSchema, systemQuantity: z.number(), countedQuantity: z.number().nullable(), difference: z.number().nullable() })) })
 export type CountDetail = z.infer<typeof countDetailSchema>
+export const purchaseUnitInputSchema = z.object({ name: z.string().trim().min(1).max(30), status: z.enum(['ACTIVE', 'PASSIVE']),
+  conversion: z.string().transform((value) => parseQuantity(value, false, 6)).pipe(z.number()) })
+export type PurchaseUnitInput = z.input<typeof purchaseUnitInputSchema>
+export const purchaseUnitSchema = z.object({ id: z.uuid(), name: z.string(), conversionToBase: z.number().positive(), status: z.enum(['ACTIVE', 'PASSIVE']) })
+export type PurchaseUnit = z.infer<typeof purchaseUnitSchema>
+export const purchaseUnitsSchema = z.object({ tenantId: z.uuid(), itemId: z.uuid(), units: z.array(purchaseUnitSchema) })
+export function inventoryReceiptPreview(quantity: number, conversion: number): number | null {
+  if (!Number.isFinite(quantity) || !Number.isFinite(conversion) || quantity <= 0 || conversion <= 0 || quantity >= 1e12 || conversion >= 1e12) return null
+  const scaled = BigInt(quantity.toFixed(4).replace('.', '')) * BigInt(conversion.toFixed(6).replace('.', ''))
+  if (scaled % 1000000n !== 0n || scaled / 1000000n > 9999999999999999n) return null
+  return Number(scaled / 1000000n) / 10000
+}
 const messages: Record<string, string> = {
   AUTHENTICATION_REQUIRED: 'Lütfen tekrar oturum açın.', INVENTORY_MODULE_NOT_AVAILABLE: 'Stok modülü kullanılamıyor.',
   INVENTORY_PERMISSION_DENIED: 'Bu işlem için stok yetkiniz yok.', INVENTORY_QUANTITY_INVALID: 'Miktarı en fazla 4 ondalıkla, geçerli bir pozitif sayı olarak girin.',
@@ -51,6 +63,9 @@ const messages: Record<string, string> = {
   INVENTORY_ITEM_NOT_AVAILABLE: 'Stok kartı aktif değil veya bu işletmeye ait değil.', INVENTORY_LOCATION_NOT_AVAILABLE: 'Lokasyon kullanılamıyor.',
   INVENTORY_NONZERO_STOCK: 'Kartı pasif yapmak için tüm lokasyonlardaki stok bakiyesi sıfır olmalıdır.', INVENTORY_NO_CHANGES: 'Değişiklik yapılmadı.',
   INVENTORY_BASE_UNIT_IMMUTABLE: 'Baz birim değiştirilemez.', INVENTORY_HISTORY_IMMUTABLE: 'Stok hareketi değiştirilemez.',
+  INVENTORY_PURCHASE_UNIT_INVALID: 'Birim adı ve pozitif dönüşüm katsayısını kontrol edin (en fazla 6 ondalık).',
+  INVENTORY_PURCHASE_UNIT_DUPLICATE: 'Bu stok kartında aynı satınalma birimi zaten var.',
+  INVENTORY_PURCHASE_UNIT_NOT_AVAILABLE: 'Satınalma birimi kullanılamıyor.',
   INVENTORY_MOVEMENT_INVALID: 'Hareket tipini, yönünü ve açıklamasını kontrol edin.', INVENTORY_COUNT_INVALID: 'Sayım miktarlarını kontrol edin.',
   INVENTORY_COUNT_INCOMPLETE: 'Tüm ürünler için sayılan miktarı girin.', INVENTORY_COUNT_IMMUTABLE: 'İşlenmiş veya iptal edilmiş sayım değiştirilemez.',
   INVENTORY_COUNT_ALREADY_OPEN: 'Bu lokasyonda açık bir taslak sayım var. Mevcut sayımı açın veya iptal edin.',

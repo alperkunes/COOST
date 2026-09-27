@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../shared/supabase/client'
 import { useTenant } from '../../../shared/tenant/useTenant'
-import { overviewSchema, managementSchema, contextSchema, countsSchema, countDetailSchema, inventoryError } from '../model/inventory'
+import { overviewSchema, managementSchema, contextSchema, countsSchema, countDetailSchema, purchaseUnitsSchema, inventoryError } from '../model/inventory'
 
 export function useInventoryOverview(locationId: string) {
   const { tenantId } = useTenant()
@@ -50,6 +50,16 @@ export function useInventoryCountDetail(countId: string) {
     if (error) throw new Error(inventoryError(error.message))
     const result = countDetailSchema.parse(data)
     if (result.tenantId !== tenantId || result.id !== countId) throw new Error('Sayım doğrulanamadı.')
+    return result
+  } })
+}
+export function useInventoryPurchaseUnits(itemId: string) {
+  const { tenantId } = useTenant()
+  return useQuery({ queryKey: ['inventory-purchase-units', tenantId, itemId], enabled: !!tenantId && !!itemId, queryFn: async () => {
+    const { data, error } = await supabase.rpc('get_inventory_purchase_units', { p_tenant_id: tenantId!, p_item_id: itemId })
+    if (error) throw new Error(inventoryError(error.message))
+    const result = purchaseUnitsSchema.parse(data)
+    if (result.tenantId !== tenantId || result.itemId !== itemId) throw new Error('Satınalma birimleri doğrulanamadı.')
     return result
   } })
 }
