@@ -6,6 +6,7 @@ import { useInventoryCosts, useRecipeCosts, useMenuCosts } from '../queries/useC
 import { costMoney, costNumber, type Recipe, type MenuProduct } from '../model/costing'
 import { units } from '../../inventory/model/inventory'
 import { RecipeDialog, MenuProductDialog, MissingCost } from './CostingDialogs'
+import { OperatingProfitability } from './OperatingProfitability'
 import '../../finance/pages/FinancePage.css'
 import './CostingPage.css'
 
@@ -16,7 +17,7 @@ export function CostingPage() {
 function CostingContent() {
   const { context } = useTenant()
   const canWrite = !!context && hasAccess(context, { requiredModule: 'food-service', requiredPermission: 'food-service.costing.write' })
-  const [tab, setTab] = useState<'purchase' | 'recipe' | 'menu'>('purchase')
+  const [tab, setTab] = useState<'purchase' | 'recipe' | 'menu' | 'period'>('purchase')
   const [currency, setCurrency] = useState('TRY')
   const [location, setLocation] = useState('')
   const [dialog, setDialog] = useState<{ kind: 'recipe'; recipe?: Recipe } | { kind: 'menu'; product?: MenuProduct } | null>(null)
@@ -24,14 +25,14 @@ function CostingContent() {
   const current = tab === 'purchase' ? inventory : tab === 'recipe' ? recipes : menu
   return <section className="finance-page costing-page">
     <div className="finance-heading"><div><span className="eyebrow">YÖNETİM</span><h1>Maliyet</h1><p>Net Alış Maliyeti · Purchase Cost Reference</p></div>
-      <button className="finance-refresh-button" disabled={current.isFetching} onClick={() => { void inventory.refetch(); void recipes.refetch(); void menu.refetch() }}><RefreshCw size={16} />Yenile</button></div>
-    <div className="costing-toolbar"><div role="tablist" aria-label="Maliyet bölümleri">{([['purchase', 'Alış Maliyetleri'], ['recipe', 'Reçeteler'], ['menu', 'Menü Kârlılığı']] as const).map(([key, label]) => <button key={key} id={`costing-tab-${key}`} role="tab" aria-selected={tab === key} aria-controls="costing-panel" onClick={() => setTab(key)}>{label}</button>)}</div>
-      <label className="finance-dialog-field"><span>Lokasyon</span><select value={location} onChange={(e) => setLocation(e.target.value)}><option value="">Tüm lokasyonlar</option>{inventory.data?.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
+      {tab !== 'period' ? <button className="finance-refresh-button" disabled={current.isFetching} onClick={() => { void inventory.refetch(); void recipes.refetch(); void menu.refetch() }}><RefreshCw size={16} />Yenile</button> : null}</div>
+    <div className="costing-toolbar"><div role="tablist" aria-label="Maliyet bölümleri">{([['purchase', 'Alış Maliyetleri'], ['recipe', 'Reçeteler'], ['menu', 'Menü Kârlılığı'], ['period', 'Dönem Kârlılığı']] as const).map(([key, label]) => <button key={key} id={`costing-tab-${key}`} role="tab" aria-selected={tab === key} aria-controls="costing-panel" onClick={() => setTab(key)}>{label}</button>)}</div>
+      {tab !== 'period' ? <label className="finance-dialog-field"><span>Lokasyon</span><select value={location} onChange={(e) => setLocation(e.target.value)}><option value="">Tüm lokasyonlar</option>{inventory.data?.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label> : null}
       {tab === 'purchase' ? <label className="finance-dialog-field"><span>Para birimi filtresi</span><input aria-label="Para birimi filtresi" maxLength={3} value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} /></label> : null}
-      {canWrite && tab !== 'purchase' ? <button className="finance-refresh-button" disabled={recipes.isPending || recipes.isError} onClick={() => setDialog({ kind: tab === 'recipe' ? 'recipe' : 'menu' })}><Plus size={16} />{tab === 'recipe' ? 'Yeni Reçete' : 'Yeni Menü Ürünü'}</button> : null}
+      {canWrite && (tab === 'recipe' || tab === 'menu') ? <button className="finance-refresh-button" disabled={recipes.isPending || recipes.isError} onClick={() => setDialog({ kind: tab === 'recipe' ? 'recipe' : 'menu' })}><Plus size={16} />{tab === 'recipe' ? 'Yeni Reçete' : 'Yeni Menü Ürünü'}</button> : null}
     </div>
     <div role="tabpanel" id="costing-panel" aria-labelledby={`costing-tab-${tab}`}>
-      {tab === 'purchase' && !/^[A-Z]{3}$/.test(currency) ? <p role="status">Üç harfli para birimi girin.</p> : current.isPending ? <p role="status">Maliyetler yükleniyor...</p> : current.isError ? <div role="alert">{current.error.message}<button onClick={() => { void current.refetch() }}>Tekrar dene</button></div> : <>
+      {tab === 'period' ? <OperatingProfitability canWrite={canWrite} /> : tab === 'purchase' && !/^[A-Z]{3}$/.test(currency) ? <p role="status">Üç harfli para birimi girin.</p> : current.isPending ? <p role="status">Maliyetler yükleniyor...</p> : current.isError ? <div role="alert">{current.error.message}<button onClick={() => { void current.refetch() }}>Tekrar dene</button></div> : <>
         {tab === 'purchase' ? <div className="costing-table-wrap"><table><caption>Alış Maliyetleri · {currency}</caption><thead><tr>{['Stok kartı', 'Baz birim', 'Son alış / baz birim', 'Önceki alış', 'Değişim %', 'Ağırlıklı Alış Maliyeti', 'Son tedarikçi', 'Son fatura tarihi'].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>
           {inventory.data?.items.map((i) => <tr key={i.id}><th scope="row">{i.name}<small>{i.sku}</small></th><td>{units[i.baseUnit]}</td>{i.costStatus === 'NO_PURCHASE_COST' ? <td colSpan={6}>Alış maliyeti yok</td> : <><td>{costMoney(i.lastPurchase?.unitCost ?? null, currency, 6)}</td><td>{costMoney(i.previousPurchase?.unitCost ?? null, currency, 6)}</td><td>{i.priceChangePct !== null && i.priceChangePct > 0 ? '+' : ''}{costNumber(i.priceChangePct)}</td><td>{costMoney(i.weightedPurchaseUnitCost, currency, 6)}</td><td>{i.lastPurchase?.supplierName}</td><td>{i.lastPurchase?.invoiceDate}<small>{i.lastPurchase?.invoiceNumber}</small></td></>}</tr>)}
           {!inventory.data?.items.length ? <tr><td colSpan={8}>Aktif stok kartı yok.</td></tr> : null}

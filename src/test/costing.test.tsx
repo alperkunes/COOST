@@ -16,7 +16,7 @@ const recipe: Recipe = { id: recipeId, name: 'Plate', code: null, category: null
   totalLastCost: 20, totalWeightedCost: 15, costPerPortionLast: 10, costPerPortionWeighted: 7.5,
   lines: [{ inventoryItemId: itemId, itemName: 'Meat', baseUnit: 'GRAM', itemStatus: 'ACTIVE', quantityBase: 100, notes: null, lastUnitCost: .2, weightedUnitCost: .15, lastLineCost: 20, weightedLineCost: 15, costStatus: 'READY' }] }
 const product: MenuProduct = { id: productId, name: 'Menu', code: null, category: null, recipeId, recipeName: 'Plate', currencyCode: 'TRY', salePriceGross: 120, salesTaxRate: 20,
-  targetFoodCostPct: 25, costMethod: 'WEIGHTED_PURCHASE', status: 'ACTIVE', costingComplete: true, missingCostItemCount: 0, salePriceNet: 100, recipeCostPerPortion: 7.5, foodCostPct: 7.5,
+  targetFoodCostPct: 25, targetOperatingMarginPct: null, costMethod: 'WEIGHTED_PURCHASE', status: 'ACTIVE', costingComplete: true, missingCostItemCount: 0, salePriceNet: 100, recipeCostPerPortion: 7.5, foodCostPct: 7.5,
   contributionMargin: 92.5, suggestedNetPrice: 30, suggestedGrossPrice: 36, targetDifferencePp: -17.5 }
 const item = { id: itemId, name: 'Meat', sku: 'M1', category: 'Meat', baseUnit: 'GRAM', lastPurchase: { unitCost: .2, invoiceDate: '2026-01-03', invoiceNumber: 'COST-3', supplierName: 'Supplier', receiptBaseQuantity: 1000 },
   previousPurchase: { unitCost: .15, invoiceDate: '2026-01-02' }, weightedPurchaseUnitCost: .15, purchaseReceiptCount: 3, purchasedBaseQuantity: 4000, purchaseNetTotal: 600, priceChangePct: 100 / 3, costStatus: 'READY' }
@@ -137,7 +137,7 @@ describe('recipe commands', () => {
 describe('menu product commands', () => {
   it('sends create args and switches LAST/WEIGHTED preview', async () => {
     const { user, onClose } = setup('menu')
-    change('Ürün adı', 'Menu new'); change('KDV dahil satış fiyatı', '120'); change('Satış KDV %', '20'); change('Hedef Food Cost %', '25')
+    change('Ürün adı', 'Menu new'); change('KDV dahil satış fiyatı', '120'); change('Satış KDV %', '20'); change('Hedef Food Cost %', '25'); change('Hedef Faaliyet Marjı %', '20')
     await user.selectOptions(screen.getByLabelText('Reçete'), recipeId)
     expect(screen.getByText('7,50 TRY')).toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText('Cost yöntemi'), 'LAST_PURCHASE')
@@ -145,14 +145,25 @@ describe('menu product commands', () => {
     expect(screen.getByText('48,00 TRY')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ürünü Kaydet' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
-    expect(commands()[0]).toEqual(['create_menu_product', { p_tenant_id: tenant.tenantId, p_name: 'Menu new', p_code: undefined, p_category: undefined, p_recipe_id: recipeId, p_currency_code: 'TRY', p_sale_price_gross: 120, p_sales_tax_rate: 20, p_target_food_cost_pct: 25, p_cost_method: 'LAST_PURCHASE' }])
+    expect(commands()[0]).toEqual(['create_menu_product', { p_tenant_id: tenant.tenantId, p_name: 'Menu new', p_code: undefined, p_category: undefined, p_recipe_id: recipeId, p_currency_code: 'TRY', p_sale_price_gross: 120, p_sales_tax_rate: 20, p_target_food_cost_pct: 25, p_target_operating_margin_pct: 20, p_cost_method: 'LAST_PURCHASE' }])
   })
   it('sends menu update and clears nullable target', async () => {
     const { user, onClose } = setup('edit-menu')
     change('Hedef Food Cost %', ''); await user.selectOptions(screen.getByLabelText('Durum'), 'PASSIVE')
     await user.click(screen.getByRole('button', { name: 'Ürünü Kaydet' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
-    expect(commands()[0]).toEqual(['update_menu_product', expect.objectContaining({ p_product_id: productId, p_target_food_cost_pct: undefined, p_status: 'PASSIVE' })])
+    expect(commands()[0]).toEqual(['update_menu_product', expect.objectContaining({ p_product_id: productId, p_target_food_cost_pct: undefined, p_target_operating_margin_pct: undefined, p_status: 'PASSIVE' })])
+  })
+  it('validates and updates the independent operating margin target', async () => {
+    const { user, onClose } = setup('edit-menu')
+    for (const value of ['0', '-1', '100', '20.0001']) {
+      change('Hedef Faaliyet Marjı %', value)
+      expect(screen.getByRole('button', { name: 'Ürünü Kaydet' })).toBeDisabled()
+    }
+    change('Hedef Faaliyet Marjı %', '30')
+    await user.click(screen.getByRole('button', { name: 'Ürünü Kaydet' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(commands()[0]).toEqual(['update_menu_product', expect.objectContaining({ p_target_food_cost_pct: 25, p_target_operating_margin_pct: 30 })])
   })
   it('blocks duplicate menu submit and retries failed RPC', async () => {
     const { user, onClose } = setup('edit-menu')

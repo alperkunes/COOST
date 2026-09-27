@@ -15,7 +15,7 @@ export function useSaveRecipe() {
     if (error) throw new Error(costingError(error.message))
     if (!data) throw new Error('Reçete kaydedilemedi.')
     return data
-  }, onSuccess: async () => { await Promise.all(['recipe-costs', 'menu-costs'].map((key) => client.invalidateQueries({ queryKey: [key, tenantId] }))) } })
+  }, onSuccess: async () => { await Promise.all(['operating-profitability', 'operating-data', 'recipe-costs', 'menu-costs'].map((key) => client.invalidateQueries({ queryKey: [key, tenantId] }))) } })
 }
 export function useSaveMenuProduct() {
   const { tenantId } = useTenant()
@@ -25,10 +25,10 @@ export function useSaveMenuProduct() {
     const v = productInputSchema.parse(input)
     const args = { p_tenant_id: tenantId, p_name: v.name, p_code: v.code || undefined, p_category: v.category || undefined,
       p_recipe_id: v.recipeId, p_currency_code: v.currencyCode, p_sale_price_gross: v.salePriceGross, p_sales_tax_rate: v.salesTaxRate,
-      p_cost_method: v.costMethod, p_target_food_cost_pct: v.targetFoodCostPct ?? undefined }
+      p_cost_method: v.costMethod, p_target_food_cost_pct: v.targetFoodCostPct ?? undefined, p_target_operating_margin_pct: v.targetOperatingMarginPct ?? undefined }
     const { data, error } = id ? await supabase.rpc('update_menu_product', { ...args, p_product_id: id, p_status: v.status }) : await supabase.rpc('create_menu_product', args)
     if (error) throw new Error(costingError(error.message))
     if (!data) throw new Error('Menü ürünü kaydedilemedi.')
     return data
-  }, onSuccess: async () => { await client.invalidateQueries({ queryKey: ['menu-costs', tenantId] }) } })
+  }, onSuccess: async () => { await Promise.all(['menu-costs', 'operating-profitability', 'operating-data'].map((key) => client.invalidateQueries({ queryKey: [key, tenantId] }))) } })
 }

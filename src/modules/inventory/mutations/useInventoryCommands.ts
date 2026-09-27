@@ -12,7 +12,7 @@ function useInventoryCommand<T>(command: (tenantId: string, input: T) => Promise
     if (error) throw new Error(inventoryError(error.message))
     if (!data) throw new Error('İşlem tamamlanamadı.')
     return data
-  }, onSuccess: async () => { await Promise.all(['inventory-overview', 'inventory-management', 'inventory-context', 'inventory-counts', 'inventory-count-detail', 'inventory-purchase-units', 'purchase-invoice-context', 'inventory-costs', 'recipe-costs', 'menu-costs']
+  }, onSuccess: async () => { await Promise.all(['operating-profitability', 'inventory-overview', 'inventory-management', 'inventory-context', 'inventory-counts', 'inventory-count-detail', 'inventory-purchase-units', 'purchase-invoice-context', 'inventory-costs', 'recipe-costs', 'menu-costs']
     .map((key) => client.invalidateQueries({ queryKey: [key, tenantId] }))) } })
 }
 export function useSaveInventoryItem() {

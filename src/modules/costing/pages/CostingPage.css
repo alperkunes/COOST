@@ -26,4 +26,14 @@
 .costing-line { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) 64px 36px; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid #dce4e5; }
 .costing-line-cost { grid-column: 2 / -1; display: grid; gap: 6px; font-size: 12px; overflow-wrap: anywhere; }
 .costing-dialog .finance-dialog-field input { padding-right: 12px; }
+.operating-filters { display: grid; grid-template-columns: repeat(auto-fit,minmax(155px,1fr)); align-items: end; gap: 12px; margin-bottom: 24px; }
+.operating-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 12px; }
+.operating-summary > div { border: 1px solid #dce4e5; border-radius: 6px; padding: 16px; background: #fff; }
+.operating-summary dt { font-size: 13px; color: #515b62; min-height: 36px; }
+.operating-summary dd { margin: 8px 0 0; font-size: 21px; font-weight: 600; overflow-wrap: anywhere; }
+.operating-history { border-top: 1px solid #dce4e5; margin-top: 28px; padding-top: 12px; }
+.operating-profitability button { display: inline-flex; align-items: center; gap: 6px; }
+.operating-profitability thead button { border: 0; background: transparent; padding: 0; font: inherit; text-align: left; }
+.operating-void { color: #727980; background: #f5f5f5; }
+.operating-filters input, .operating-filters select { min-width: 0; width: 100%; }
 @media (max-width: 620px) { .costing-fields, .costing-totals { grid-template-columns: 1fr; } .costing-line { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 48px 32px; gap: 6px; } .costing-toolbar { align-items: stretch; } .costing-toolbar [role="tablist"] { width: 100%; } }

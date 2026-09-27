@@ -20,6 +20,7 @@ export const recipeSchema = z.object({ id: z.uuid(), name: z.string(), code: z.s
 export type Recipe = z.infer<typeof recipeSchema>
 export const recipesSchema = z.object({ tenantId: z.uuid(), locationId: z.uuid().nullable(), recipes: z.array(recipeSchema) })
 export const productSchema = z.object({ id: z.uuid(), name: z.string(), code: z.string().nullable(), category: z.string().nullable(), currencyCode: currency,
+  targetOperatingMarginPct: nullableNumber.default(null),
   recipeId: z.uuid(), recipeName: z.string(), salePriceGross: z.number(), salesTaxRate: z.number(), targetFoodCostPct: nullableNumber, costMethod: methodSchema, status,
   costingComplete: z.boolean(), missingCostItemCount: z.number(), salePriceNet: z.number(), recipeCostPerPortion: nullableNumber, foodCostPct: nullableNumber,
   contributionMargin: nullableNumber, suggestedNetPrice: nullableNumber, suggestedGrossPrice: nullableNumber, targetDifferencePp: nullableNumber })
@@ -32,6 +33,7 @@ export const recipeInputSchema = z.object({ ...commonInput, portions: decimal(4)
 }).refine((v) => new Set(v.lines.map((l) => l.inventoryItemId)).size === v.lines.length, { message: 'Aynı malzeme yalnızca bir kez eklenebilir.' })
 export type RecipeInput = z.input<typeof recipeInputSchema>
 export const productInputSchema = z.object({ ...commonInput, recipeId: z.uuid(), salePriceGross: decimal(2, true), salesTaxRate: decimal(3, true).pipe(z.number().max(100)),
+  targetOperatingMarginPct: z.string().transform((v) => v.trim() === '' ? null : parseQuantity(v, false, 3) ?? NaN).pipe(z.number().lt(100).nullable()),
   targetFoodCostPct: z.string().transform((v) => v.trim() === '' ? null : parseQuantity(v, false, 3) ?? NaN).pipe(z.number().max(100).nullable()), costMethod: methodSchema })
 export type ProductInput = z.input<typeof productInputSchema>
 export function recipePreview(lines: { quantityBase: number; lastUnitCost: number | null; weightedUnitCost: number | null }[], portions: number) {
@@ -49,6 +51,7 @@ export function menuPreview(gross: number, tax: number, cost: number | null, tar
 export const costNumber = (n: number | null, digits = 2) => n === null ? '—' : new Intl.NumberFormat('tr-TR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(n)
 export const costMoney = (n: number | null, code: string, digits = 2) => n === null ? '—' : `${costNumber(n, digits)} ${code}`
 const messages: Record<string, string> = {
+  MENU_OPERATING_TARGET_INVALID: 'Hedef faaliyet marjı sıfırdan büyük ve 100’den küçük olmalıdır.',
   COSTING_MODULE_NOT_AVAILABLE: 'Maliyet için yiyecek-içecek modülü açık olmalıdır.', COSTING_PERMISSION_DENIED: 'Maliyet işlemi için yetkiniz yok.',
   COSTING_LOCATION_NOT_AVAILABLE: 'Lokasyon bu işletmeye ait değil.', COSTING_CURRENCY_INVALID: 'Üç harfli para birimi girin.',
   COSTING_NO_CHANGES: 'Değişiklik yapılmadı.', RECIPE_INVALID: 'Reçete alanlarını ve porsiyon sayısını kontrol edin.',

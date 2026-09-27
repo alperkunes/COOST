@@ -5,14 +5,14 @@ import { useSaveRecipe, useSaveMenuProduct } from '../mutations/useCostingComman
 import { costMoney, costNumber, recipeInputSchema, productInputSchema, recipePreview, menuPreview, type Recipe, type RecipeInput, type ProductInput, type MenuProduct } from '../model/costing'
 import { parseQuantity, units } from '../../inventory/model/inventory'
 
-function Modal({ title, busy, onClose, children }: { title: string; busy: boolean; onClose: () => void; children: ReactNode }) {
+export function Modal({ title, busy, onClose, children }: { title: string; busy: boolean; onClose: () => void; children: ReactNode }) {
   return <div className="finance-dialog-backdrop"><section className="finance-dialog costing-dialog" role="dialog" aria-modal="true" aria-labelledby="costing-dialog-title">
     <div className="finance-dialog-heading"><h2 id="costing-dialog-title">{title}</h2><button type="button" title="Kapat" aria-label="Kapat" disabled={busy} onClick={onClose}><X size={20} /></button></div>{children}</section></div>
 }
 export function MissingCost({ count }: { count: number }) {
   return <p className="costing-warning" role="status">Bu reçetenin maliyeti tamamlanamıyor. {count} malzemede alış maliyeti bulunmuyor.</p>
 }
-function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="finance-dialog-field"><span>{label}</span>{children}</label> }
+export function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="finance-dialog-field"><span>{label}</span>{children}</label> }
 function Status({ value, onChange }: { value: 'ACTIVE' | 'PASSIVE'; onChange: (v: 'ACTIVE' | 'PASSIVE') => void }) {
   return <Field label="Durum"><select value={value} onChange={(e) => onChange(e.target.value as 'ACTIVE' | 'PASSIVE')}><option value="ACTIVE">Aktif</option><option value="PASSIVE">Pasif</option></select></Field>
 }
@@ -64,8 +64,8 @@ export function RecipeDialog({ recipe, location, onClose }: { recipe?: Recipe; l
   </form></Modal>
 }
 export function MenuProductDialog({ product, recipes, onClose }: { product?: MenuProduct; recipes: Recipe[]; onClose: () => void }) {
-  const [input, setInput] = useState<ProductInput>(() => product ? { ...product, code: product.code ?? '', category: product.category ?? '', salePriceGross: String(product.salePriceGross), salesTaxRate: String(product.salesTaxRate), targetFoodCostPct: product.targetFoodCostPct === null ? '' : String(product.targetFoodCostPct) }
-    : { name: '', code: '', category: '', recipeId: '', currencyCode: 'TRY', salePriceGross: '', salesTaxRate: '', targetFoodCostPct: '', costMethod: 'WEIGHTED_PURCHASE', status: 'ACTIVE' })
+  const [input, setInput] = useState<ProductInput>(() => product ? { ...product, targetOperatingMarginPct: product.targetOperatingMarginPct == null ? '' : String(product.targetOperatingMarginPct), code: product.code ?? '', category: product.category ?? '', salePriceGross: String(product.salePriceGross), salesTaxRate: String(product.salesTaxRate), targetFoodCostPct: product.targetFoodCostPct === null ? '' : String(product.targetFoodCostPct) }
+    : { name: '', code: '', category: '', targetOperatingMarginPct: '', recipeId: '', currencyCode: 'TRY', salePriceGross: '', salesTaxRate: '', targetFoodCostPct: '', costMethod: 'WEIGHTED_PURCHASE', status: 'ACTIVE' })
   const mutation = useSaveMenuProduct()
   const submitting = useRef(false)
   const parsed = productInputSchema.safeParse(input)
@@ -79,7 +79,7 @@ export function MenuProductDialog({ product, recipes, onClose }: { product?: Men
     try { await mutation.mutateAsync({ id: product?.id, input }); onClose() } catch { /* Keep input for retry. */ } finally { submitting.current = false }
   }
   return <Modal title={product ? 'Menü Ürününü Düzenle' : 'Yeni Menü Ürünü'} busy={mutation.isPending} onClose={onClose}><form onSubmit={submit}><fieldset disabled={mutation.isPending} className="costing-fields">
-    {([['name', 'Ürün adı'], ['code', 'Kod'], ['category', 'Kategori'], ['salePriceGross', 'KDV dahil satış fiyatı'], ['salesTaxRate', 'Satış KDV %'], ['targetFoodCostPct', 'Hedef Food Cost %']] as const).map(([key, label]) => <Field key={key} label={label}><input value={input[key]} onChange={(e) => setInput({ ...input, [key]: e.target.value })} /></Field>)}
+    {([['name', 'Ürün adı'], ['code', 'Kod'], ['category', 'Kategori'], ['salePriceGross', 'KDV dahil satış fiyatı'], ['salesTaxRate', 'Satış KDV %'], ['targetFoodCostPct', 'Hedef Food Cost %'], ['targetOperatingMarginPct', 'Hedef Faaliyet Marjı %']] as const).map(([key, label]) => <Field key={key} label={label}><input value={input[key]} onChange={(e) => setInput({ ...input, [key]: e.target.value })} /></Field>)}
     <Field label="Reçete"><select value={input.recipeId} onChange={(e) => { const r = recipes.find((v) => v.id === e.target.value); setInput({ ...input, recipeId: e.target.value, currencyCode: r?.currencyCode ?? 'TRY' }) }}><option value="">Reçete seçin</option>{recipes.map((r) => <option key={r.id} value={r.id}>{r.name} · {r.currencyCode}{r.status === 'PASSIVE' ? ' (Pasif)' : ''}</option>)}</select></Field>
     <Field label="Cost yöntemi"><select value={input.costMethod} onChange={(e) => setInput({ ...input, costMethod: e.target.value as ProductInput['costMethod'] })}><option value="WEIGHTED_PURCHASE">Ağırlıklı Alış Maliyeti</option><option value="LAST_PURCHASE">Son Alış Maliyeti</option></select></Field>
     {product ? <Status value={input.status} onChange={(status) => setInput({ ...input, status })} /> : null}

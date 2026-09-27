@@ -728,6 +728,73 @@ export type Database = {
           },
         ]
       }
+      menu_product_sales_facts: {
+        Row: {
+          created_at: string
+          currency_code: string
+          gross_sales: number
+          id: string
+          location_id: string
+          menu_product_id: string
+          net_sales: number
+          quantity: number
+          sale_date: string
+          source_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code: string
+          gross_sales: number
+          id?: string
+          location_id: string
+          menu_product_id: string
+          net_sales: number
+          quantity: number
+          sale_date: string
+          source_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          gross_sales?: number
+          id?: string
+          location_id?: string
+          menu_product_id?: string
+          net_sales?: number
+          quantity?: number
+          sale_date?: string
+          source_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_product_sales_facts_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "menu_product_sales_facts_menu_product_id_tenant_id_currenc_fkey"
+            columns: ["menu_product_id", "tenant_id", "currency_code"]
+            isOneToOne: false
+            referencedRelation: "menu_products"
+            referencedColumns: ["id", "tenant_id", "currency_code"]
+          },
+          {
+            foreignKeyName: "menu_product_sales_facts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_products: {
         Row: {
           category: string | null
@@ -742,6 +809,7 @@ export type Database = {
           sales_tax_rate: number
           status: string
           target_food_cost_pct: number | null
+          target_operating_margin_pct: number | null
           tenant_id: string
           updated_at: string
         }
@@ -758,6 +826,7 @@ export type Database = {
           sales_tax_rate: number
           status?: string
           target_food_cost_pct?: number | null
+          target_operating_margin_pct?: number | null
           tenant_id: string
           updated_at?: string
         }
@@ -774,6 +843,7 @@ export type Database = {
           sales_tax_rate?: number
           status?: string
           target_food_cost_pct?: number | null
+          target_operating_margin_pct?: number | null
           tenant_id?: string
           updated_at?: string
         }
@@ -787,6 +857,66 @@ export type Database = {
           },
           {
             foreignKeyName: "menu_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operating_cost_entries: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          currency_code: string
+          description: string
+          id: string
+          location_id: string | null
+          occurred_on: string
+          source_type: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          currency_code: string
+          description: string
+          id?: string
+          location_id?: string | null
+          occurred_on: string
+          source_type: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          currency_code?: string
+          description?: string
+          id?: string
+          location_id?: string | null
+          occurred_on?: string
+          source_type?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operating_cost_entries_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "operating_cost_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1569,6 +1699,19 @@ export type Database = {
           p_sale_price_gross: number
           p_sales_tax_rate: number
           p_target_food_cost_pct?: number
+          p_target_operating_margin_pct?: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      create_operating_cost_entry: {
+        Args: {
+          p_amount: number
+          p_category: string
+          p_currency_code: string
+          p_description: string
+          p_location_id?: string
+          p_occurred_on: string
           p_tenant_id: string
         }
         Returns: string
@@ -1657,6 +1800,27 @@ export type Database = {
         Returns: Json
       }
       get_my_tenant_context: { Args: { p_tenant_id: string }; Returns: Json }
+      get_operating_data: {
+        Args: {
+          p_currency_code: string
+          p_end_date: string
+          p_location_id?: string
+          p_start_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_operating_profitability: {
+        Args: {
+          p_allocation_method?: string
+          p_currency_code: string
+          p_end_date: string
+          p_location_id?: string
+          p_start_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_purchase_invoice_context: {
         Args: { p_tenant_id: string }
         Returns: Json
@@ -1737,6 +1901,20 @@ export type Database = {
           p_sales_tax_rate: number
           p_status: string
           p_target_food_cost_pct?: number
+          p_target_operating_margin_pct?: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_operating_cost_entry: {
+        Args: {
+          p_amount: number
+          p_category: string
+          p_currency_code: string
+          p_description: string
+          p_entry_id: string
+          p_location_id?: string
+          p_occurred_on: string
           p_tenant_id: string
         }
         Returns: string
@@ -1781,6 +1959,22 @@ export type Database = {
           p_tax_number: string
           p_tenant_id: string
         }
+        Returns: string
+      }
+      upsert_menu_product_sales_fact: {
+        Args: {
+          p_gross_sales: number
+          p_location_id: string
+          p_menu_product_id: string
+          p_net_sales: number
+          p_quantity: number
+          p_sale_date: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      void_operating_cost_entry: {
+        Args: { p_entry_id: string; p_tenant_id: string }
         Returns: string
       }
     }
