@@ -175,6 +175,24 @@ beforeEach(() => {
       }
     }
 
+    if (name === 'get_sales_app_sync_overview') {
+      return {
+        data: {
+          tenantId: tenant.tenantId,
+          providerKey: 'SALES_APP',
+          locations: [
+            {
+              id: locationId,
+              name: 'Nazilli',
+            },
+          ],
+          connections: [],
+          recentRuns: [],
+        },
+        error: null,
+      }
+    }
+
     return {
       data: batchId,
       error: null,

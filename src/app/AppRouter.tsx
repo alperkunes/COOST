@@ -6,6 +6,7 @@ import { SupplierPage } from '../modules/suppliers/pages/SupplierPage'
 import { PurchaseInvoicePage } from '../modules/purchasing/pages/PurchaseInvoicePage'
 import { InventoryPage } from '../modules/inventory/pages/InventoryPage'
 import { CostingPage } from '../modules/costing/pages/CostingPage'
+import { SalesAppPage } from '../modules/costing/pages/SalesAppPage'
 import { RequireAccess } from '../shared/access/RequireAccess'
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage'
 
@@ -16,6 +17,18 @@ export function AppRouter() {
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
           <Route path="costing" element={<RequireAccess requiredModule="food-service" requiredPermission="food-service.costing.read"><CostingPage /></RequireAccess>} />
+
+          <Route
+            path="sales-app"
+            element={
+              <RequireAccess
+                requiredModule="food-service"
+                requiredPermission="food-service.costing.read"
+              >
+                <SalesAppPage />
+              </RequireAccess>
+            }
+          />
 
           <Route
             path="assistant"

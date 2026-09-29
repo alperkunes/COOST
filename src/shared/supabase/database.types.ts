@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       audit_logs: {
@@ -1361,6 +1336,63 @@ export type Database = {
           },
         ]
       }
+      sales_app_connections: {
+        Row: {
+          adapter_key: string | null
+          created_at: string
+          external_location_id: string | null
+          id: string
+          location_id: string
+          provider_key: string
+          status: string
+          sync_enabled: boolean
+          sync_lookback_days: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          adapter_key?: string | null
+          created_at?: string
+          external_location_id?: string | null
+          id?: string
+          location_id: string
+          provider_key?: string
+          status?: string
+          sync_enabled?: boolean
+          sync_lookback_days?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          adapter_key?: string | null
+          created_at?: string
+          external_location_id?: string | null
+          id?: string
+          location_id?: string
+          provider_key?: string
+          status?: string
+          sync_enabled?: boolean
+          sync_lookback_days?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_app_connections_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_app_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_app_import_batches: {
         Row: {
           business_date: string
@@ -1554,6 +1586,101 @@ export type Database = {
           },
           {
             foreignKeyName: "sales_app_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_app_sync_runs: {
+        Row: {
+          business_date_end: string
+          business_date_start: string
+          connection_id: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          import_batch_count: number
+          imported_row_count: number
+          location_id: string
+          metadata: Json
+          provider_key: string
+          requested_by_user_id: string | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          trigger_type: string
+        }
+        Insert: {
+          business_date_end: string
+          business_date_start: string
+          connection_id: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          import_batch_count?: number
+          imported_row_count?: number
+          location_id: string
+          metadata?: Json
+          provider_key?: string
+          requested_by_user_id?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          trigger_type: string
+        }
+        Update: {
+          business_date_end?: string
+          business_date_start?: string
+          connection_id?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          import_batch_count?: number
+          imported_row_count?: number
+          location_id?: string
+          metadata?: Json
+          provider_key?: string
+          requested_by_user_id?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_app_sync_runs_connection_id_tenant_id_location_id_pr_fkey"
+            columns: [
+              "connection_id",
+              "tenant_id",
+              "location_id",
+              "provider_key",
+            ]
+            isOneToOne: false
+            referencedRelation: "sales_app_connections"
+            referencedColumns: [
+              "id",
+              "tenant_id",
+              "location_id",
+              "provider_key",
+            ]
+          },
+          {
+            foreignKeyName: "sales_app_sync_runs_location_id_tenant_id_fkey"
+            columns: ["location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_app_sync_runs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1942,6 +2069,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_sales_app_connection: {
+        Args: {
+          p_adapter_key?: string
+          p_external_location_id?: string
+          p_location_id: string
+          p_sync_lookback_days?: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_supplier: {
         Args: {
           p_email?: string
@@ -2041,6 +2178,10 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      get_sales_app_sync_overview: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       get_supplier_overview: {
         Args: { p_recent_limit?: number; p_tenant_id: string }
         Returns: Json
@@ -2070,6 +2211,15 @@ export type Database = {
       }
       reprocess_sales_app_import_batch: {
         Args: { p_batch_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      request_sales_app_sync: {
+        Args: {
+          p_business_date_end: string
+          p_business_date_start: string
+          p_connection_id: string
+          p_tenant_id: string
+        }
         Returns: string
       }
       update_finance_account: {
@@ -2163,6 +2313,18 @@ export type Database = {
           p_portions: number
           p_recipe_id: string
           p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      update_sales_app_connection: {
+        Args: {
+          p_adapter_key: string
+          p_connection_id: string
+          p_external_location_id: string
+          p_status: string
+          p_sync_enabled: boolean
+          p_sync_lookback_days: number
           p_tenant_id: string
         }
         Returns: string
@@ -2333,9 +2495,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

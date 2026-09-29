@@ -43,3 +43,35 @@
 .sales-app-confirm { display: flex; align-items: flex-start; gap: 10px; margin-block: 16px; }
 .sales-app-confirm input { flex-shrink: 0; }
 @media (max-width: 620px) { .costing-fields, .costing-totals { grid-template-columns: 1fr; } .costing-line { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 48px 32px; gap: 6px; } .costing-toolbar { align-items: stretch; } .costing-toolbar [role="tablist"] { width: 100%; } }
+
+.sales-app-sync-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid #dce4e5;
+}
+
+.sales-app-sync-section h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.sales-app-sync-section h4 {
+  margin: 28px 0 12px;
+  font-size: 17px;
+}
+
+.sales-app-sync-section .costing-record-heading {
+  margin-bottom: 16px;
+}
+
+.sales-app-sync-section form > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.sales-app-panel > .costing-record-heading {
+  gap: 10px;
+  flex-wrap: wrap;
+}

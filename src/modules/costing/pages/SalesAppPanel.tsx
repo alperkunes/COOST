@@ -1,23 +1,67 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Ban, Link, RefreshCw, Unlink, Upload, X } from 'lucide-react'
 import { useSalesApp } from '../queries/useSalesApp'
+import { SalesAppSyncSection } from './SalesAppSyncSection'
 import { useImportSalesApp, useReprocessSalesApp, useUpdateSalesAppMapping } from '../mutations/useSalesAppCommands'
 import { mappingLabels, normalizeSalesAppCsv, salesAppBatchKey, salesAppPreview, type SalesAppMapping, type SalesAppOverview, type SalesAppRow } from '../model/salesApp'
 import { costNumber } from '../model/costing'
 import { Field, Modal } from './CostingDialogs'
 
-export function SalesAppPanel({ canWrite, onClose }: { canWrite: boolean; onClose: () => void }) {
+export function SalesAppPanel({
+  canWrite,
+  onClose,
+  standalone = false,
+}: {
+  canWrite: boolean
+  onClose?: () => void
+  standalone?: boolean
+}) {
   const query = useSalesApp()
   const [tab, setTab] = useState<'mappings' | 'history'>('mappings')
   const [dialog, setDialog] = useState<{ kind: 'import' } | { kind: 'mapping'; mapping: SalesAppMapping; status: SalesAppMapping['status'] } | { kind: 'reprocess'; batch: SalesAppOverview['recentImports'][number] } | null>(null)
   const data = query.data
   return <section className="sales-app-panel" aria-label="Satış Uygulaması yönetimi">
-    <div className="costing-record-heading"><h2>Satış Uygulaması</h2><button title="Yenile" aria-label="Satış uygulamasını yenile" disabled={query.isFetching} onClick={() => { void query.refetch() }}><RefreshCw size={16} /></button>{canWrite && data ? <button onClick={() => setDialog({ kind: 'import' })}><Upload size={16} />Satış Dosyası / Veri İçe Aktar</button> : null}<button title="Kapat" aria-label="Satış uygulamasını kapat" onClick={onClose}><X size={16} /></button></div>
+    <div className="costing-record-heading">
+      {!standalone ? <h2>Satış Uygulaması</h2> : <h2>Ürün Eşleştirme ve Aktarım</h2>}
+      <button
+        type="button"
+        className="finance-refresh-button"
+        title="Yenile"
+        aria-label="Satış uygulamasını yenile"
+        disabled={query.isFetching}
+        onClick={() => { void query.refetch() }}
+      >
+        <RefreshCw size={16} />
+        Yenile
+      </button>
+      {canWrite && data ? (
+        <button
+          type="button"
+          className="finance-refresh-button"
+          onClick={() => setDialog({ kind: 'import' })}
+        >
+          <Upload size={16} />
+          Satış Dosyası / Veri İçe Aktar
+        </button>
+      ) : null}
+      {onClose ? (
+        <button
+          type="button"
+          className="finance-refresh-button"
+          title="Kapat"
+          aria-label="Satış uygulamasını kapat"
+          onClick={onClose}
+        >
+          <X size={16} />
+        </button>
+      ) : null}
+    </div>
     {query.isPending ? <p role="status">Satış uygulaması yükleniyor...</p> : query.isError ? <p role="alert">{query.error.message}</p> : data ? <>
       <dl className="costing-totals"><div><dt>Eşleştirildi</dt><dd>{data.summary.mappedProductCount}</dd></div><div><dt>Eşleştirilmedi</dt><dd>{data.summary.unmappedProductCount}</dd></div><div><dt>Hariç Tutuldu</dt><dd>{data.summary.ignoredProductCount}</dd></div><div><dt>Son İçe Aktarım</dt><dd>{data.summary.lastImportBusinessDate ?? 'Henüz yok'}{data.summary.lastImportAt ? <small>{new Date(data.summary.lastImportAt).toLocaleString('tr-TR')}</small> : null}</dd></div></dl>
       <div className="costing-toolbar"><div role="tablist" aria-label="Satış uygulaması bölümleri">{([['mappings', 'Ürün Eşleştirmeleri'], ['history', 'İçe Aktarım Geçmişi']] as const).map(([key, label]) => <button key={key} role="tab" id={`sales-app-tab-${key}`} aria-controls="sales-app-content" aria-selected={tab === key} onClick={() => setTab(key)}>{label}</button>)}</div></div>
       <div role="tabpanel" id="sales-app-content" aria-labelledby={`sales-app-tab-${tab}`} className="costing-table-wrap">{tab === 'mappings' ? <table><thead><tr>{['Satış Uygulaması Ürünü', 'Harici Kod', 'Lokasyon', 'Durum', 'COOST Menü Ürünü', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.mappings.map((m) => <tr key={m.id}><th scope="row">{m.externalProductName}<small>{m.externalProductId}</small></th><td>{m.externalProductCode ?? '—'}</td><td>{m.locationName ?? 'İşletme geneli'}</td><td>{mappingLabels[m.status]}</td><td>{m.menuProductName ?? '—'}</td><td>{canWrite ? <div className="sales-app-actions"><button title="Eşleştir" aria-label={`${m.externalProductName} eşleştir`} onClick={() => setDialog({ kind: 'mapping', mapping: m, status: 'MAPPED' })}><Link size={16} /></button>{m.status !== 'IGNORED' ? <button title="Hariç Tut" aria-label={`${m.externalProductName} hariç tut`} onClick={() => setDialog({ kind: 'mapping', mapping: m, status: 'IGNORED' })}><Ban size={16} /></button> : null}{m.status !== 'UNMAPPED' ? <button title="Eşleştirmeyi Kaldır" aria-label={`${m.externalProductName} eşleştirmeyi kaldır`} onClick={() => setDialog({ kind: 'mapping', mapping: m, status: 'UNMAPPED' })}><Unlink size={16} /></button> : null}</div> : null}</td></tr>)}{!data.mappings.length ? <tr><td colSpan={6}>Henüz harici ürün yok.</td></tr> : null}</tbody></table> : <table><thead><tr>{['İş Günü', 'Lokasyon', 'Para Birimi', 'Durum', 'Toplam Satır', 'Eşleşmiş', 'Eşleşmemiş', 'İçe Aktarım Zamanı', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.recentImports.map((b) => <tr key={b.id}><th scope="row">{b.businessDate}</th><td>{b.location}</td><td>{b.currencyCode}</td><td>{b.status === 'COMPLETED' ? 'Tamamlandı' : b.status === 'FAILED' ? 'Başarısız' : 'İşleniyor'}</td><td>{b.rowCount}</td><td>{b.mappedRowCount}</td><td>{b.unmappedRowCount}</td><td>{new Date(b.importedAt).toLocaleString('tr-TR')}</td><td>{canWrite && b.canReprocess ? <button title="Güncel eşleştirmelerle yeniden işle" aria-label={`${b.businessDate} yeniden işle`} onClick={() => setDialog({ kind: 'reprocess', batch: b })}><RefreshCw size={16} />Yeniden İşle</button> : null}</td></tr>)}{!data.recentImports.length ? <tr><td colSpan={9}>Henüz içe aktarım yok.</td></tr> : null}</tbody></table>}</div>
     </> : null}
+    <SalesAppSyncSection canWrite={canWrite} />
     {canWrite && data && dialog?.kind === 'import' ? <SalesAppImportDialog data={data} onClose={() => { setDialog(null); setTab('history') }} /> : null}
     {canWrite && data && dialog?.kind === 'mapping' ? <MappingDialog data={data} mapping={dialog.mapping} status={dialog.status} onClose={() => setDialog(null)} /> : null}
     {canWrite && dialog?.kind === 'reprocess' ? <ReprocessDialog batch={dialog.batch} onClose={() => setDialog(null)} /> : null}
