@@ -6,6 +6,7 @@ import { useImportSalesApp, useReprocessSalesApp, useUpdateSalesAppMapping } fro
 import { mappingLabels, normalizeSalesAppCsv, salesAppBatchKey, salesAppPreview, type SalesAppMapping, type SalesAppOverview, type SalesAppRow } from '../model/salesApp'
 import { costNumber } from '../model/costing'
 import { Field, Modal } from './CostingDialogs'
+import { NarposImportDialog } from './NarposImportDialog'
 
 export function SalesAppPanel({
   canWrite,
@@ -18,7 +19,7 @@ export function SalesAppPanel({
 }) {
   const query = useSalesApp()
   const [tab, setTab] = useState<'mappings' | 'history'>('mappings')
-  const [dialog, setDialog] = useState<{ kind: 'import' } | { kind: 'mapping'; mapping: SalesAppMapping; status: SalesAppMapping['status'] } | { kind: 'reprocess'; batch: SalesAppOverview['recentImports'][number] } | null>(null)
+  const [dialog, setDialog] = useState<{ kind: 'import' } | { kind: 'narpos-import' } | { kind: 'mapping'; mapping: SalesAppMapping; status: SalesAppMapping['status'] } | { kind: 'reprocess'; batch: SalesAppOverview['recentImports'][number] } | null>(null)
   const data = query.data
   return <section className="sales-app-panel" aria-label="Satış Uygulaması yönetimi">
     <div className="costing-record-heading">
@@ -35,14 +36,24 @@ export function SalesAppPanel({
         Yenile
       </button>
       {canWrite && data ? (
-        <button
-          type="button"
-          className="finance-refresh-button"
-          onClick={() => setDialog({ kind: 'import' })}
-        >
-          <Upload size={16} />
-          Satış Dosyası / Veri İçe Aktar
-        </button>
+        <>
+          <button
+            type="button"
+            className="finance-refresh-button"
+            onClick={() => setDialog({ kind: 'narpos-import' })}
+          >
+            <Upload size={16} />
+            NarPOS Excel İçe Aktar
+          </button>
+          <button
+            type="button"
+            className="finance-refresh-button"
+            onClick={() => setDialog({ kind: 'import' })}
+          >
+            <Upload size={16} />
+            Satış Dosyası / Veri İçe Aktar
+          </button>
+        </>
       ) : null}
       {onClose ? (
         <button
@@ -62,6 +73,7 @@ export function SalesAppPanel({
       <div role="tabpanel" id="sales-app-content" aria-labelledby={`sales-app-tab-${tab}`} className="costing-table-wrap">{tab === 'mappings' ? <table><thead><tr>{['Satış Uygulaması Ürünü', 'Harici Kod', 'Lokasyon', 'Durum', 'COOST Menü Ürünü', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.mappings.map((m) => <tr key={m.id}><th scope="row">{m.externalProductName}<small>{m.externalProductId}</small></th><td>{m.externalProductCode ?? '—'}</td><td>{m.locationName ?? 'İşletme geneli'}</td><td>{mappingLabels[m.status]}</td><td>{m.menuProductName ?? '—'}</td><td>{canWrite ? <div className="sales-app-actions"><button title="Eşleştir" aria-label={`${m.externalProductName} eşleştir`} onClick={() => setDialog({ kind: 'mapping', mapping: m, status: 'MAPPED' })}><Link size={16} /></button>{m.status !== 'IGNORED' ? <button title="Hariç Tut" aria-label={`${m.externalProductName} hariç tut`} onClick={() => setDialog({ kind: 'mapping', mapping: m, status: 'IGNORED' })}><Ban size={16} /></button> : null}{m.status !== 'UNMAPPED' ? <button title="Eşleştirmeyi Kaldır" aria-label={`${m.externalProductName} eşleştirmeyi kaldır`} onClick={() => setDialog({ kind: 'mapping', mapping: m, status: 'UNMAPPED' })}><Unlink size={16} /></button> : null}</div> : null}</td></tr>)}{!data.mappings.length ? <tr><td colSpan={6}>Henüz harici ürün yok.</td></tr> : null}</tbody></table> : <table><thead><tr>{['İş Günü', 'Lokasyon', 'Para Birimi', 'Durum', 'Toplam Satır', 'Eşleşmiş', 'Eşleşmemiş', 'İçe Aktarım Zamanı', ''].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>{data.recentImports.map((b) => <tr key={b.id}><th scope="row">{b.businessDate}</th><td>{b.location}</td><td>{b.currencyCode}</td><td>{b.status === 'COMPLETED' ? 'Tamamlandı' : b.status === 'FAILED' ? 'Başarısız' : 'İşleniyor'}</td><td>{b.rowCount}</td><td>{b.mappedRowCount}</td><td>{b.unmappedRowCount}</td><td>{new Date(b.importedAt).toLocaleString('tr-TR')}</td><td>{canWrite && b.canReprocess ? <button title="Güncel eşleştirmelerle yeniden işle" aria-label={`${b.businessDate} yeniden işle`} onClick={() => setDialog({ kind: 'reprocess', batch: b })}><RefreshCw size={16} />Yeniden İşle</button> : null}</td></tr>)}{!data.recentImports.length ? <tr><td colSpan={9}>Henüz içe aktarım yok.</td></tr> : null}</tbody></table>}</div>
     </> : null}
     <SalesAppSyncSection canWrite={canWrite} />
+    {canWrite && data && dialog?.kind === 'narpos-import' ? <NarposImportDialog data={data} onClose={() => { setDialog(null); setTab('history') }} /> : null}
     {canWrite && data && dialog?.kind === 'import' ? <SalesAppImportDialog data={data} onClose={() => { setDialog(null); setTab('history') }} /> : null}
     {canWrite && data && dialog?.kind === 'mapping' ? <MappingDialog data={data} mapping={dialog.mapping} status={dialog.status} onClose={() => setDialog(null)} /> : null}
     {canWrite && dialog?.kind === 'reprocess' ? <ReprocessDialog batch={dialog.batch} onClose={() => setDialog(null)} /> : null}

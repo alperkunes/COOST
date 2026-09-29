@@ -3,6 +3,7 @@ import { supabase } from '../../../shared/supabase/client'
 import { useTenant } from '../../../shared/tenant/useTenant'
 import { costingError } from '../model/costing'
 import { salesAppError, salesAppImportSchema, type SalesAppImport, type SalesAppMapping } from '../model/salesApp'
+import { narposGrossImportSchema, type NarposGrossImport } from '../model/narpos'
 
 function useSalesAppCommand<T>(run: (tenantId: string, input: T) => PromiseLike<{ data: string | null; error: { message: string } | null }>) {
   const { tenantId } = useTenant(), client = useQueryClient()
@@ -20,6 +21,21 @@ export function useImportSalesApp() {
     return supabase.rpc('import_sales_app_daily_sales', { p_tenant_id: tenantId, p_location_id: v.locationId, p_business_date: v.businessDate, p_external_batch_key: v.externalBatchKey, p_currency_code: v.currencyCode, p_rows: v.rows })
   })
 }
+export function useImportNarposSalesApp() {
+  return useSalesAppCommand((tenantId, input: NarposGrossImport) => {
+    const v = narposGrossImportSchema.parse(input)
+
+    return supabase.rpc('import_sales_app_daily_gross_sales', {
+      p_tenant_id: tenantId,
+      p_location_id: v.locationId,
+      p_business_date: v.businessDate,
+      p_external_batch_key: v.externalBatchKey,
+      p_currency_code: v.currencyCode,
+      p_rows: v.rows,
+    })
+  })
+}
+
 export function useUpdateSalesAppMapping() {
   return useSalesAppCommand((tenantId, input: { id: string; status: SalesAppMapping['status']; productId: string | null }) => supabase.rpc('update_sales_app_product_mapping', { p_tenant_id: tenantId, p_mapping_id: input.id, p_status: input.status, p_menu_product_id: input.productId ?? undefined }))
 }

@@ -44,7 +44,7 @@ export function normalizeSalesAppCsv(text: string): { rows: SalesAppRow[]; curre
   if (currencies.size !== 1 || !currency.safeParse(currencyCode).success) throw new Error('Dosyada tek bir geçerli para birimi bulunmalıdır.')
   return { rows, currencyCode }
 }
-export function salesAppPreview(rows: SalesAppRow[], mappings: SalesAppMapping[], locationId: string) {
+export function salesAppPreview<T extends { externalProductId: string }>(rows: T[], mappings: SalesAppMapping[], locationId: string) {
   const counts = { MAPPED: 0, UNMAPPED: 0, IGNORED: 0 }
   const resolved = rows.map((row) => {
     const matches = mappings.filter((m) => m.externalProductId === row.externalProductId)

@@ -12,6 +12,7 @@ import {
   type SalesAppOverview,
 } from '../modules/costing/model/salesApp'
 import {
+  useImportNarposSalesApp,
   useImportSalesApp,
   useReprocessSalesApp,
 } from '../modules/costing/mutations/useSalesAppCommands'
@@ -19,6 +20,7 @@ import {
   MappingDialog,
   SalesAppPanel,
 } from '../modules/costing/pages/SalesAppPanel'
+import type { NarposGrossImport } from '../modules/costing/model/narpos'
 
 const { rpc, tenant } = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -147,6 +149,26 @@ function ImportHarness({ input }: { input: SalesAppImport }) {
       onClick={() => mutation.mutate(input)}
     >
       Import
+    </button>
+  )
+}
+
+function NarposImportHarness({
+  input,
+}: {
+  input: NarposGrossImport
+}) {
+  const mutation =
+    useImportNarposSalesApp()
+
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        mutation.mutate(input)
+      }
+    >
+      Import NarPOS
     </button>
   )
 }
@@ -337,6 +359,12 @@ describe('sales app panel', () => {
 
     expect(
       screen.queryByRole('button', {
+        name: /NarPOS Excel İçe Aktar/,
+      }),
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole('button', {
         name: /^Harici Antrikot eşleştir$/ ,
       }),
     ).not.toBeInTheDocument()
@@ -353,6 +381,12 @@ describe('sales app panel', () => {
     expect(
       await screen.findByRole('button', {
         name: /Satış Dosyası \/ Veri İçe Aktar/,
+      }),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', {
+        name: /NarPOS Excel İçe Aktar/,
       }),
     ).toBeInTheDocument()
 
@@ -455,6 +489,68 @@ describe('sales app commands', () => {
 
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['operating-profitability', tenant.tenantId],
+    })
+  })
+
+  it('imports NarPOS gross sales through the tax-inclusive RPC', async () => {
+    const input: NarposGrossImport = {
+      locationId,
+      businessDate: '2026-09-29',
+      externalBatchKey: 'narpos-xlsx:test',
+      currencyCode: 'TRY',
+      rows: [
+        {
+          externalProductId: 'NARPOS:test',
+          externalProductCode: null,
+          externalProductName: 'ANA YEMEKLER / ET TADIM TABAĞI / Normal',
+          quantity: 3,
+          grossSales: 5981.11,
+        },
+      ],
+    }
+
+    const { user, invalidate } =
+      renderWithClient(
+        <NarposImportHarness
+          input={input}
+        />,
+      )
+
+    await user.click(
+      screen.getByRole(
+        'button',
+        {
+          name: 'Import NarPOS',
+        },
+      ),
+    )
+
+    await waitFor(() => {
+      expect(rpc).toHaveBeenCalledWith(
+        'import_sales_app_daily_gross_sales',
+        {
+          p_tenant_id:
+            tenant.tenantId,
+          p_location_id:
+            locationId,
+          p_business_date:
+            '2026-09-29',
+          p_external_batch_key:
+            'narpos-xlsx:test',
+          p_currency_code:
+            'TRY',
+          p_rows: input.rows,
+        },
+      )
+    })
+
+    expect(
+      invalidate,
+    ).toHaveBeenCalledWith({
+      queryKey: [
+        'sales-app',
+        tenant.tenantId,
+      ],
     })
   })
 

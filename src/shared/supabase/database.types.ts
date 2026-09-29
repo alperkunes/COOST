@@ -1406,6 +1406,7 @@ export type Database = {
           metadata: Json
           provider_key: string
           row_count: number
+          sales_amount_mode: string
           status: string
           tenant_id: string
           unmapped_row_count: number
@@ -1422,6 +1423,7 @@ export type Database = {
           metadata?: Json
           provider_key?: string
           row_count: number
+          sales_amount_mode?: string
           status: string
           tenant_id: string
           unmapped_row_count?: number
@@ -1438,6 +1440,7 @@ export type Database = {
           metadata?: Json
           provider_key?: string
           row_count?: number
+          sales_amount_mode?: string
           status?: string
           tenant_id?: string
           unmapped_row_count?: number
@@ -2189,6 +2192,17 @@ export type Database = {
       get_supplier_payment_context: {
         Args: { p_tenant_id: string }
         Returns: Json
+      }
+      import_sales_app_daily_gross_sales: {
+        Args: {
+          p_business_date: string
+          p_currency_code: string
+          p_external_batch_key: string
+          p_location_id: string
+          p_rows: Json
+          p_tenant_id: string
+        }
+        Returns: string
       }
       import_sales_app_daily_sales: {
         Args: {
