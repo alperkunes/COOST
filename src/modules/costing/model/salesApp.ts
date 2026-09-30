@@ -64,6 +64,7 @@ const errors: Record<string, string> = {
   SALES_APP_IMPORT_INVALID: 'İş günü, lokasyon, batch anahtarı ve satır sayısını kontrol edin.', SALES_APP_ROW_INVALID: 'Satış satırındaki ürün, miktar veya tutar geçersiz.',
   SALES_APP_DUPLICATE_PRODUCT: 'Dosyada aynı harici ürün kimliği birden fazla kez bulunamaz.', SALES_APP_BATCH_KEY_CONFLICT: 'Bu batch anahtarı farklı bir veri için kullanılmış.',
   SALES_APP_MAPPING_INVALID: 'Eşleştirme durumunu ve menü ürününü kontrol edin.', SALES_APP_MAPPING_NOT_AVAILABLE: 'Eşleştirme bulunamadı.',
+  SALES_APP_BULK_MAPPING_INVALID: 'Toplu eşleştirme verisi geçersiz.', SALES_APP_BULK_MAPPING_DUPLICATE: 'Aynı ürün toplu eşleştirmede birden fazla kez gönderilemez.',
   SALES_APP_BATCH_NOT_AVAILABLE: 'İçe aktarım bulunamadı.', SALES_APP_BATCH_SUPERSEDED: 'Bu gün için daha yeni bir içe aktarım var. En son içe aktarımı yeniden işleyin.',
   SALES_APP_CURRENCY_MISMATCH: 'Eşleştirilen menü ürünü ile dosyanın para birimi aynı olmalıdır.', SALES_APP_TOTAL_OVERFLOW: 'Ürün toplamı desteklenen tutarı aşıyor.',
 }

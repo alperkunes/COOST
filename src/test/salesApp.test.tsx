@@ -365,6 +365,12 @@ describe('sales app panel', () => {
 
     expect(
       screen.queryByRole('button', {
+        name: /NarPOS Toplu Eşleştir/,
+      }),
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole('button', {
         name: /^Harici Antrikot eşleştir$/ ,
       }),
     ).not.toBeInTheDocument()

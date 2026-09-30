@@ -36,6 +36,88 @@ export function useImportNarposSalesApp() {
   })
 }
 
+export type BulkSalesAppMappingUpdate = {
+  mappingId: string
+  status: SalesAppMapping['status']
+  menuProductId: string | null
+}
+
+export function useBulkUpdateSalesAppMappings() {
+  const { tenantId } = useTenant()
+  const client = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      updates: BulkSalesAppMappingUpdate[],
+    ) => {
+      if (!tenantId) {
+        throw new Error(
+          'Aktif işletme bulunamadı.',
+        )
+      }
+
+      if (!updates.length) {
+        throw new Error(
+          'Kaydedilecek eşleştirme değişikliği bulunamadı.',
+        )
+      }
+
+      const { data, error } =
+        await supabase.rpc(
+          'bulk_update_sales_app_product_mappings',
+          {
+            p_tenant_id: tenantId,
+            p_updates:
+              updates.map(
+                (update) => ({
+                  mappingId:
+                    update.mappingId,
+                  status:
+                    update.status,
+                  menuProductId:
+                    update.menuProductId,
+                }),
+              ),
+          },
+        )
+
+      if (error) {
+        throw new Error(
+          costingError(
+            salesAppError(
+              error.message,
+            ),
+          ),
+        )
+      }
+
+      if (data == null) {
+        throw new Error(
+          'Toplu eşleştirme tamamlanamadı.',
+        )
+      }
+
+      return data
+    },
+    onSuccess: async () => {
+      await Promise.all(
+        [
+          'sales-app',
+          'operating-data',
+          'operating-profitability',
+        ].map((key) =>
+          client.invalidateQueries({
+            queryKey: [
+              key,
+              tenantId,
+            ],
+          }),
+        ),
+      )
+    },
+  })
+}
+
 export function useUpdateSalesAppMapping() {
   return useSalesAppCommand((tenantId, input: { id: string; status: SalesAppMapping['status']; productId: string | null }) => supabase.rpc('update_sales_app_product_mapping', { p_tenant_id: tenantId, p_mapping_id: input.id, p_status: input.status, p_menu_product_id: input.productId ?? undefined }))
 }

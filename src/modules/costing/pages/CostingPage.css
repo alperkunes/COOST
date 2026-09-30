@@ -75,3 +75,85 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.sales-app-bulk-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  margin: 20px 0 8px;
+}
+
+.sales-app-bulk-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  font-size: 13px;
+}
+
+.sales-app-bulk-table {
+  max-height: min(60vh, 620px);
+  overflow: auto;
+  border: 1px solid #dce4e5;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.sales-app-bulk-table table {
+  min-width: 760px;
+}
+
+.sales-app-bulk-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sales-app-bulk-table select {
+  width: 100%;
+  min-width: 300px;
+}
+
+.sales-app-bulk-form .finance-dialog-actions {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .sales-app-bulk-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sales-app-match-suggestion {
+  margin-top: 7px;
+  line-height: 1.35;
+}
+
+.sales-app-match-suggestion span {
+  display: block;
+  margin-top: 2px;
+}
+
+.sales-app-match-high {
+  color: #176b57 !important;
+}
+
+.sales-app-match-medium {
+  color: #8a6415 !important;
+}
+
+.sales-app-match-low,
+.sales-app-match-none {
+  color: #737b83 !important;
+}
+
+.sales-app-match-info {
+  border-left: 3px solid #177d6b;
+  background: #edf8f5;
+  color: #145d50;
+  padding: 12px 16px;
+}

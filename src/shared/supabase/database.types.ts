@@ -1930,6 +1930,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_update_sales_app_product_mappings: {
+        Args: { p_tenant_id: string; p_updates: Json }
+        Returns: Json
+      }
       cancel_inventory_count: {
         Args: { p_count_id: string; p_tenant_id: string }
         Returns: string
