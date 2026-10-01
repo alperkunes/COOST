@@ -1,4 +1,9 @@
 begin;
+
+-- Test-only: allow authenticated to execute pg_temp helpers created in this
+-- transaction. ROLLBACK at the end restores the hardened production defaults.
+alter default privileges for role postgres
+  grant execute on functions to anon, authenticated;
 insert into auth.users(id,aud,role,email,created_at,updated_at) values
 ('a1111111-6666-4666-8666-111111111111','authenticated','authenticated','count-cancel-writer@coost.test',now(),now()),
 ('a1111111-7777-4777-8777-111111111111','authenticated','authenticated','count-cancel-reader@coost.test',now(),now());
