@@ -66,6 +66,9 @@ values (
   100.00
 );
 
+-- Flush deferred finance-shape checks before exercising TRUNCATE guards.
+set constraints all immediate;
+
 do $$
 begin
   begin
