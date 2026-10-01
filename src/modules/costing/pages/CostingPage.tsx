@@ -18,7 +18,7 @@ export function CostingPage() {
 
 function CostingReadinessPanel({ recipes, canPurchase }: { recipes: Recipe[]; canPurchase: boolean }) {
   const readiness = costingReadiness(recipes)
-  if (!readiness.totalRecipes) return <div className="costing-readiness"><h2>Maliyet Hazırlık Merkezi</h2><p>Henüz reçete yok.</p></div>
+  if (!readiness.totalRecipes) return <div className="costing-readiness"><h2>Maliyet Hazırlık Merkezi</h2><p>Maliyet hazırlığına dahil aktif reçete yok.</p></div>
 
   return <div className="costing-readiness">
     <div className="costing-readiness-intro">
