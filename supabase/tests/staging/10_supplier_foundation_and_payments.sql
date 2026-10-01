@@ -430,7 +430,7 @@ begin
       and not has_table_privilege('anon','public.'||tab,'SELECT'),'browser writes and anon reads revoked');
   end loop;
   foreach signature in array array['public.create_supplier(uuid,text,text,text,text,text)','public.update_supplier(uuid,uuid,text,text,text,text,text,text)',
-    'public.get_supplier_overview(uuid,integer)','public.get_supplier_payment_context(uuid)','public.create_supplier_payment(uuid,uuid,uuid,numeric,text,timestamptz)'] loop
+    'public.get_supplier_overview(uuid,integer)','public.get_supplier_payment_context(uuid)','public.create_supplier_payment(uuid,uuid,uuid,numeric,text,timestamptz,uuid)'] loop
     perform pg_temp.assert_true(not has_function_privilege('anon',signature,'EXECUTE') and has_function_privilege('authenticated',signature,'EXECUTE')
       and has_function_privilege('service_role',signature,'EXECUTE'),'RPC grants');
     perform pg_temp.assert_true((select prosecdef and proconfig @> array['search_path=""'] from pg_proc where oid = signature::regprocedure),'definer search path');

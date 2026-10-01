@@ -1954,6 +1954,7 @@ export type Database = {
           p_amount: number
           p_description: string
           p_occurred_at?: string
+          p_request_id?: string
           p_tenant_id: string
         }
         Returns: string
@@ -1964,6 +1965,7 @@ export type Database = {
           p_amount: number
           p_description: string
           p_occurred_at?: string
+          p_request_id?: string
           p_tenant_id: string
           p_transaction_type: string
         }
@@ -1975,6 +1977,7 @@ export type Database = {
           p_description: string
           p_from_account_id: string
           p_occurred_at?: string
+          p_request_id?: string
           p_tenant_id: string
           p_to_account_id: string
         }
@@ -2104,6 +2107,7 @@ export type Database = {
           p_finance_account_id: string
           p_occurred_at?: string
           p_supplier_id: string
+          p_request_id?: string
           p_tenant_id: string
         }
         Returns: string

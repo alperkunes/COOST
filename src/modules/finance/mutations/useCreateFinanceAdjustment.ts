@@ -3,6 +3,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { supabase } from '../../../shared/supabase/client'
+import { useIdempotencyRequest } from '../../../shared/idempotency/useIdempotencyRequest'
 import { useTenant } from '../../../shared/tenant/useTenant'
 
 type CreateFinanceAdjustmentInput = {
@@ -15,6 +16,7 @@ type CreateFinanceAdjustmentInput = {
 export function useCreateFinanceAdjustment() {
   const { tenantId } = useTenant()
   const queryClient = useQueryClient()
+  const request = useIdempotencyRequest()
 
   return useMutation({
     mutationFn: async ({
@@ -46,11 +48,20 @@ export function useCreateFinanceAdjustment() {
         )
       }
 
+      const requestId = request.getRequestId({
+        tenantId,
+        accountId,
+        amount,
+        description: cleanDescription,
+        occurredAt: occurredAt ?? null,
+      })
+
       const args = {
         p_tenant_id: tenantId,
         p_account_id: accountId,
         p_amount: amount,
         p_description: cleanDescription,
+        p_request_id: requestId,
         ...(occurredAt
           ? { p_occurred_at: occurredAt }
           : {}),
@@ -75,6 +86,8 @@ export function useCreateFinanceAdjustment() {
     },
 
     onSuccess: async () => {
+      request.clearRequestId()
+
       await queryClient.invalidateQueries({
         queryKey: ['finance-overview', tenantId],
       })

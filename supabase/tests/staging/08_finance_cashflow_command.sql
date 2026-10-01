@@ -359,7 +359,7 @@ declare
   v_id uuid;
   v_amount numeric;
   v_signed numeric;
-  v_signature text := 'public.create_finance_cashflow(uuid,uuid,text,numeric,text,timestamptz)';
+  v_signature text := 'public.create_finance_cashflow(uuid,uuid,text,numeric,text,timestamptz,uuid)';
 begin
   foreach v_type in array array['INCOME', 'EXPENSE'] loop
     v_amount := case when v_type = 'INCOME' then 250.56 else 50.56 end;
