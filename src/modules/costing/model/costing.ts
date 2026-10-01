@@ -14,9 +14,19 @@ export const inventoryCostsSchema = z.object({ tenantId: z.uuid(), currencyCode:
   locations: z.array(z.object({ id: z.uuid(), name: z.string() })), items: z.array(costItemSchema) })
 const recipeLineSchema = z.object({ inventoryItemId: z.uuid(), itemName: z.string(), baseUnit: baseUnitSchema, itemStatus: status, quantityBase: z.number(), notes: z.string().nullable(),
   lastUnitCost: nullableNumber, weightedUnitCost: nullableNumber, lastLineCost: nullableNumber, weightedLineCost: nullableNumber, costStatus: z.enum(['READY', 'NO_PURCHASE_COST']) })
+const unresolvedRecipeLineSchema = z.object({ unresolvedLineId: z.uuid(), inventoryItemId: z.uuid(), itemName: z.string(), baseUnit: baseUnitSchema, itemStatus: status,
+  sourceLineKey: z.string().nullable(), sourceQuantity: z.number(), sourceUnit: z.string(), notes: z.string().nullable(), reason: z.literal('UNIT_CONVERSION_REQUIRED'),
+  costStatus: z.literal('UNIT_CONVERSION_REQUIRED') })
+const subrecipeLineSchema = z.object({ subrecipeId: z.uuid(), subrecipeName: z.string(), subrecipeCode: z.string().nullable(), quantity: nullableNumber,
+  unit: baseUnitSchema.nullable(), yieldQuantity: nullableNumber, yieldUnit: baseUnitSchema.nullable(), notes: z.string().nullable(), childCostingComplete: z.boolean(),
+  childTotalLastCost: nullableNumber, childTotalWeightedCost: nullableNumber, lastLineCost: nullableNumber, weightedLineCost: nullableNumber,
+  costStatus: z.enum(['READY', 'MISSING_USAGE_QUANTITY', 'MISSING_CHILD_YIELD', 'UNIT_MISMATCH', 'CHILD_RECIPE_INACTIVE', 'CHILD_COST_INCOMPLETE']) })
 export const recipeSchema = z.object({ id: z.uuid(), name: z.string(), code: z.string().nullable(), category: z.string().nullable(), currencyCode: currency, portions: z.number(), status,
-  lines: z.array(recipeLineSchema), totalLastCost: nullableNumber, totalWeightedCost: nullableNumber, costPerPortionLast: nullableNumber, costPerPortionWeighted: nullableNumber,
-  missingCostItemCount: z.number(), costingComplete: z.boolean() })
+  yieldQuantity: nullableNumber, yieldUnit: baseUnitSchema.nullable(), lines: z.array(recipeLineSchema), unresolvedLines: z.array(unresolvedRecipeLineSchema),
+  subrecipeLines: z.array(subrecipeLineSchema), totalLastCost: nullableNumber, totalWeightedCost: nullableNumber, costPerPortionLast: nullableNumber, costPerPortionWeighted: nullableNumber,
+  missingCostItemCount: z.number(), missingDirectCostItemCount: z.number(), missingPurchaseCostItemCount: z.number(), missingConversionItemCount: z.number(),
+  missingSubrecipeCostCount: z.number(), directLineCount: z.number(), unresolvedLineCount: z.number(), subrecipeLineCount: z.number(),
+  costStatus: z.enum(['READY', 'INCOMPLETE', 'DEPENDENCY_CYCLE']), costingComplete: z.boolean() })
 export type Recipe = z.infer<typeof recipeSchema>
 export const recipesSchema = z.object({ tenantId: z.uuid(), locationId: z.uuid().nullable(), recipes: z.array(recipeSchema) })
 export const productSchema = z.object({ id: z.uuid(), name: z.string(), code: z.string().nullable(), category: z.string().nullable(), currencyCode: currency,
@@ -29,8 +39,7 @@ export const productsSchema = z.object({ tenantId: z.uuid(), locationId: z.uuid(
 const decimal = (digits: number, zero = false) => z.string().transform((v) => parseQuantity(v, zero, digits)).pipe(z.number())
 const commonInput = { name: z.string().trim().min(2).max(160), code: z.string().trim().max(100), category: z.string().trim().max(120), currencyCode: currency, status }
 export const recipeInputSchema = z.object({ ...commonInput, portions: decimal(4).pipe(z.number().lt(1e8)),
-  lines: z.array(z.object({ inventoryItemId: z.uuid(), quantityBase: decimal(4), notes: z.string().trim().max(500) })).min(1).max(200),
-}).refine((v) => new Set(v.lines.map((l) => l.inventoryItemId)).size === v.lines.length, { message: 'Aynı malzeme yalnızca bir kez eklenebilir.' })
+  lines: z.array(z.object({ inventoryItemId: z.uuid(), quantityBase: decimal(4), notes: z.string().trim().max(500) })).min(1).max(200) })
 export type RecipeInput = z.input<typeof recipeInputSchema>
 export const productInputSchema = z.object({ ...commonInput, recipeId: z.uuid(), salePriceGross: decimal(2, true), salesTaxRate: decimal(3, true).pipe(z.number().max(100)),
   targetOperatingMarginPct: z.string().transform((v) => v.trim() === '' ? null : parseQuantity(v, false, 3) ?? NaN).pipe(z.number().lt(100).nullable()),
@@ -50,12 +59,21 @@ export function menuPreview(gross: number, tax: number, cost: number | null, tar
 }
 export const costNumber = (n: number | null, digits = 2) => n === null ? '—' : new Intl.NumberFormat('tr-TR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(n)
 export const costMoney = (n: number | null, code: string, digits = 2) => n === null ? '—' : `${costNumber(n, digits)} ${code}`
+export const sourceUnitLabel = (unit: string) => ({ GRAM: 'g', MILLILITER: 'ml', EACH: 'adet', CLOVE: 'diş' }[unit] ?? unit)
+export const subrecipeCostStatusLabel = (value: Recipe['subrecipeLines'][number]['costStatus']) => ({
+  READY: 'Hazır',
+  MISSING_USAGE_QUANTITY: 'Kullanım miktarı eksik',
+  MISSING_CHILD_YIELD: 'Alt reçete verimi eksik',
+  UNIT_MISMATCH: 'Birim uyumsuz',
+  CHILD_RECIPE_INACTIVE: 'Alt reçete pasif',
+  CHILD_COST_INCOMPLETE: 'Alt reçete maliyeti eksik',
+}[value])
 const messages: Record<string, string> = {
   MENU_OPERATING_TARGET_INVALID: 'Hedef faaliyet marjı sıfırdan büyük ve 100’den küçük olmalıdır.',
   COSTING_MODULE_NOT_AVAILABLE: 'Maliyet için yiyecek-içecek modülü açık olmalıdır.', COSTING_PERMISSION_DENIED: 'Maliyet işlemi için yetkiniz yok.',
   COSTING_LOCATION_NOT_AVAILABLE: 'Lokasyon bu işletmeye ait değil.', COSTING_CURRENCY_INVALID: 'Üç harfli para birimi girin.',
   COSTING_NO_CHANGES: 'Değişiklik yapılmadı.', RECIPE_INVALID: 'Reçete alanlarını ve porsiyon sayısını kontrol edin.',
-  RECIPE_LINES_INVALID: 'Malzeme miktarları pozitif ve en fazla 4 ondalık olmalıdır.', RECIPE_DUPLICATE_INGREDIENT: 'Aynı malzeme yalnızca bir kez eklenebilir.',
+  RECIPE_LINES_INVALID: 'Malzeme miktarları pozitif ve en fazla 4 ondalık olmalıdır.',
   RECIPE_DUPLICATE: 'Bu ad veya kodla reçete zaten var.', COSTING_ITEM_NOT_AVAILABLE: 'Malzeme aktif değil veya bu işletmeye ait değil.',
   RECIPE_NOT_AVAILABLE: 'Reçete bulunamadı.', RECIPE_CURRENCY_IN_USE: 'Menüye bağlı reçetenin para birimi değiştirilemez.',
   MENU_RECIPE_CURRENCY_MISMATCH: 'Menü ürünü ve reçete aynı para biriminde olmalıdır.', MENU_PRODUCT_INVALID: 'Fiyat, vergi ve hedef alanlarını kontrol edin.',
