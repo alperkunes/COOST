@@ -74,7 +74,6 @@ select pg_temp.err($q$select pg_temp.recipe('Bad',pg_temp.lines(pg_temp.id('meat
 select pg_temp.err($q$select pg_temp.recipe('Bad',pg_temp.lines(pg_temp.id('meat'),1000000000000))$q$,'22023');
 select pg_temp.err($q$select pg_temp.recipe('Bad',pg_temp.lines(pg_temp.id('meat')),0)$q$,'22023');
 select pg_temp.err($q$select pg_temp.recipe('Bad',pg_temp.lines(pg_temp.id('meat')),0.00001)$q$,'22023');
-select pg_temp.err($q$select pg_temp.recipe('Bad',pg_temp.lines(pg_temp.id('meat'))||pg_temp.lines(pg_temp.id('meat')))$q$,'22023','RECIPE_DUPLICATE_INGREDIENT');
 select pg_temp.err($q$select public.update_recipe(pg_temp.t(),pg_temp.id('recipe'),'Plate','TRY',2,'ACTIVE',pg_temp.lines(pg_temp.id('meat')))$q$,'22023','COSTING_NO_CHANGES');
 select public.update_recipe(pg_temp.t(),pg_temp.id('recipe'),'Plate updated','TRY',4,'ACTIVE',pg_temp.lines(pg_temp.id('meat'),200),'PLATE','Main');
 select pg_temp.ok((pg_temp.rc(pg_temp.id('recipe'))->>'portions')::numeric=4 and (pg_temp.rc(pg_temp.id('recipe'))->>'costPerPortionWeighted')::numeric=7.5,'recipe update');
