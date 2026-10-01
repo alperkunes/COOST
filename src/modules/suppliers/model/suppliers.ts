@@ -70,6 +70,7 @@ const messages: Record<string, string> = {
   SUPPLIER_PAYMENT_AMOUNT_INVALID: 'Sıfırdan büyük bir ödeme tutarı girin.',
   SUPPLIER_PAYMENT_AMOUNT_OVERFLOW: 'Ödeme tutarı izin verilen üst sınırı aşıyor.',
   SUPPLIER_PAYMENT_DESCRIPTION_INVALID: 'Açıklama 2–500 karakter olmalıdır.',
+  SUPPLIER_PAYMENT_IDEMPOTENCY_CONFLICT: 'Ödeme isteği önceki bir işlemle çakıştı. Ekranı yenileyip tekrar deneyin.',
   SUPPLIER_HISTORY_IMMUTABLE: 'Ödeme ve borç hareketleri değiştirilemez veya silinemez.',
 }
 export function supplierError(message: string) { return messages[message] ?? message }

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../shared/supabase/client'
+import { useIdempotencyRequest } from '../../../shared/idempotency/useIdempotencyRequest'
 import { useTenant } from '../../../shared/tenant/useTenant'
 import type { FinanceOverviewAccount } from '../model/financeOverview'
 import { canTransferBetween } from '../model/financeTransfer'
@@ -14,6 +15,7 @@ type CreateFinanceTransferInput = {
 export function useCreateFinanceTransfer() {
   const { tenantId } = useTenant()
   const queryClient = useQueryClient()
+  const request = useIdempotencyRequest()
 
   return useMutation({
     mutationFn: async ({ fromAccount, toAccount, amount, description }: CreateFinanceTransferInput) => {
@@ -28,18 +30,30 @@ export function useCreateFinanceTransfer() {
       if (cleanDescription.length < 2 || cleanDescription.length > 500) {
         throw new Error('Açıklama 2 ile 500 karakter arasında olmalıdır.')
       }
+
+      const requestId = request.getRequestId({
+        tenantId,
+        fromAccountId: fromAccount.id,
+        toAccountId: toAccount.id,
+        amount,
+        description: cleanDescription,
+      })
+
       const { data, error } = await supabase.rpc('create_finance_transfer', {
         p_tenant_id: tenantId,
         p_from_account_id: fromAccount.id,
         p_to_account_id: toAccount.id,
         p_amount: amount,
         p_description: cleanDescription,
+        p_request_id: requestId,
       })
+
       if (error) throw new Error(error.message)
       if (!data) throw new Error('Transfer oluşturulamadı.')
       return data
     },
     onSuccess: async () => {
+      request.clearRequestId()
       await queryClient.invalidateQueries({ queryKey: ['finance-overview', tenantId] })
     },
   })

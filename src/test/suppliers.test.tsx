@@ -170,7 +170,8 @@ describe('supplier payment', () => {
     await user.click(screen.getByRole('button', { name: 'Ödemeyi Kaydet' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
     expect(commandCalls()).toEqual([['create_supplier_payment', { p_tenant_id: tenant.tenantId,
-      p_supplier_id: supplierId, p_finance_account_id: accountId, p_amount: 1200, p_description: 'Fatura ödemesi' }]])
+      p_supplier_id: supplierId, p_finance_account_id: accountId, p_amount: 1200, p_description: 'Fatura ödemesi',
+      p_request_id: expect.any(String) }]])
     for (const key of ['supplier-overview', 'supplier-payment-context', 'finance-overview']) {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: [key, tenant.tenantId] })
     }
@@ -220,6 +221,8 @@ describe('supplier payment', () => {
     expect(onClose).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Ödemeyi Kaydet' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    const paymentCalls = commandCalls()
+    expect(paymentCalls[0]?.[1]?.p_request_id).toBe(paymentCalls[1]?.[1]?.p_request_id)
   })
   it('blocks duplicate payment submits', async () => {
     const { user, onClose } = setup('pay')

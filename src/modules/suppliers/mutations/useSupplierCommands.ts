@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../shared/supabase/client'
+import { useIdempotencyRequest } from '../../../shared/idempotency/useIdempotencyRequest'
 import { useTenant } from '../../../shared/tenant/useTenant'
 import { supplierFormSchema, supplierError, parseSupplierAmount, type SupplierFormInput } from '../model/suppliers'
 
@@ -24,9 +25,12 @@ export function useSaveSupplier() {
     onSuccess: async () => { await client.invalidateQueries({ queryKey: ['supplier-overview', tenantId] }) },
   })
 }
+
 export function useCreateSupplierPayment() {
   const { tenantId } = useTenant()
   const client = useQueryClient()
+  const request = useIdempotencyRequest()
+
   return useMutation({
     mutationFn: async (input: { supplierId: string; financeAccountId: string; amount: number; description: string }) => {
       if (!tenantId) throw new Error('Aktif işletme bulunamadı.')
@@ -34,15 +38,30 @@ export function useCreateSupplierPayment() {
       if (parseSupplierAmount(String(input.amount)) === null) throw new Error('Pozitif, en fazla iki ondalıklı tutar girin.')
       const description = input.description.trim()
       if (description.length < 2 || description.length > 500) throw new Error('Açıklama 2–500 karakter olmalıdır.')
-      const { data, error } = await supabase.rpc('create_supplier_payment', {
-        p_tenant_id: tenantId, p_supplier_id: input.supplierId, p_finance_account_id: input.financeAccountId,
-        p_amount: input.amount, p_description: description,
+
+      const requestId = request.getRequestId({
+        tenantId,
+        supplierId: input.supplierId,
+        financeAccountId: input.financeAccountId,
+        amount: input.amount,
+        description,
       })
+
+      const { data, error } = await supabase.rpc('create_supplier_payment', {
+        p_tenant_id: tenantId,
+        p_supplier_id: input.supplierId,
+        p_finance_account_id: input.financeAccountId,
+        p_amount: input.amount,
+        p_description: description,
+        p_request_id: requestId,
+      })
+
       if (error) throw new Error(supplierError(error.message))
       if (!data) throw new Error('Ödeme kaydedilemedi.')
       return data
     },
     onSuccess: async () => {
+      request.clearRequestId()
       await Promise.all(['supplier-overview', 'supplier-payment-context', 'finance-overview']
         .map((key) => client.invalidateQueries({ queryKey: [key, tenantId] })))
     },

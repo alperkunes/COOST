@@ -67,6 +67,7 @@ describe('finance transfer', () => {
     expect(rpc).toHaveBeenCalledExactlyOnceWith('create_finance_transfer', {
       p_tenant_id: 'tenant-1', p_from_account_id: 'cash', p_to_account_id: 'bank',
       p_amount: 1234.56, p_description: 'Bankaya aktarım',
+      p_request_id: expect.any(String),
     })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['finance-overview', 'tenant-1'] })
   })
@@ -95,6 +96,7 @@ describe('finance transfer', () => {
     expect(onClose).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Transferi Kaydet' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(rpc.mock.calls[0]?.[1]?.p_request_id).toBe(rpc.mock.calls[1]?.[1]?.p_request_id)
   })
 
   it('blocks duplicate submissions and closing while saving', async () => {

@@ -52,6 +52,7 @@ describe('finance cashflow', () => {
     expect(rpc).toHaveBeenCalledExactlyOnceWith('create_finance_cashflow', {
       p_tenant_id: 'tenant-1', p_account_id: 'cash', p_transaction_type: transactionType,
       p_amount: 1234.56, p_description: 'Satış tahsilatı',
+      p_request_id: expect.any(String),
     })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['finance-overview', 'tenant-1'] })
   })
@@ -84,6 +85,7 @@ describe('finance cashflow', () => {
     expect(onClose).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Kaydet' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(rpc.mock.calls[0]?.[1]?.p_request_id).toBe(rpc.mock.calls[1]?.[1]?.p_request_id)
   })
 
   it('blocks duplicate submissions and closing while saving', async () => {
