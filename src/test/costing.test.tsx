@@ -13,6 +13,8 @@ vi.mock('../shared/supabase/client', () => ({ supabase: { rpc } }))
 vi.mock('../shared/tenant/useTenant', () => ({ useTenant: () => tenant }))
 const itemId = 'c1111111-1111-4111-8111-111111111111', recipeId = 'c1111111-2222-4222-8222-111111111111', productId = 'c1111111-3333-4333-8333-111111111111'
 const recipe: Recipe = { id: recipeId, name: 'Plate', code: null, category: null, currencyCode: 'TRY', portions: 2, status: 'ACTIVE', costingComplete: true, missingCostItemCount: 0,
+  yieldQuantity: null, yieldUnit: null, unresolvedLines: [], subrecipeLines: [], missingDirectCostItemCount: 0, missingPurchaseCostItemCount: 0,
+  missingConversionItemCount: 0, missingSubrecipeCostCount: 0, directLineCount: 1, unresolvedLineCount: 0, subrecipeLineCount: 0, costStatus: 'READY',
   totalLastCost: 20, totalWeightedCost: 15, costPerPortionLast: 10, costPerPortionWeighted: 7.5,
   lines: [{ inventoryItemId: itemId, itemName: 'Meat', baseUnit: 'GRAM', itemStatus: 'ACTIVE', quantityBase: 100, notes: null, lastUnitCost: .2, weightedUnitCost: .15, lastLineCost: 20, weightedLineCost: 15, costStatus: 'READY' }] }
 const product: MenuProduct = { id: productId, name: 'Menu', code: null, category: null, recipeId, recipeName: 'Plate', currencyCode: 'TRY', salePriceGross: 120, salesTaxRate: 20,
@@ -58,11 +60,11 @@ describe('costing calculations', () => {
     expect(menuPreview(0, 10, 7.5, null)).toEqual({ net: 0, foodCostPct: null, margin: -7.5, suggestedGross: null })
     expect(menuPreview(120, 20, null, 25)).toEqual({ net: 100, foodCostPct: null, margin: null, suggestedGross: null })
   })
-  it('validates quantities, portions and duplicate ingredients', () => {
+  it('validates quantities and portions while allowing duplicate ingredients', () => {
     const input = { name: 'Plate', code: '', category: '', currencyCode: 'TRY', portions: '2', status: 'ACTIVE', lines: [{ inventoryItemId: itemId, quantityBase: '100', notes: '' }] }
     expect(recipeInputSchema.safeParse(input).success).toBe(true)
     for (const portions of ['0', '-1', '100000000', '.00001']) expect(recipeInputSchema.safeParse({ ...input, portions }).success).toBe(false)
-    expect(recipeInputSchema.safeParse({ ...input, lines: [...input.lines, ...input.lines] }).success).toBe(false)
+    expect(recipeInputSchema.safeParse({ ...input, lines: [...input.lines, ...input.lines] }).success).toBe(true)
   })
 })
 describe('costing read models', () => {
