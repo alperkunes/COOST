@@ -1,4 +1,9 @@
 begin;
+
+-- Test-only: allow authenticated to execute pg_temp helpers created in this
+-- transaction. ROLLBACK at the end restores the hardened production defaults.
+alter default privileges for role postgres
+  grant execute on functions to anon, authenticated;
 create function pg_temp.ok(v boolean,m text) returns void language plpgsql as $$ begin if v is distinct from true then raise exception 'ASSERT: %',m; end if; end; $$;
 create function pg_temp.err(q text,s text) returns void language plpgsql as $$ begin execute q; raise exception 'EXPECTED_ERROR: %',q; exception when others then if sqlstate <> s then raise; end if; end; $$;
 create function pg_temp.t() returns uuid language sql as $$ select 'd1111111-aaaa-4aaa-8aaa-111111111111'::uuid $$;

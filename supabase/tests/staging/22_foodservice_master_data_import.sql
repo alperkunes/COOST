@@ -1,5 +1,10 @@
 begin;
 
+-- Test-only: allow authenticated to execute pg_temp helpers created in this
+-- transaction. ROLLBACK at the end restores the hardened production defaults.
+alter default privileges for role postgres
+  grant execute on functions to anon, authenticated;
+
 create function pg_temp.ok(
   v boolean,
   m text
