@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CostingPage } from '../modules/costing/pages/CostingPage'
 import { RecipeDialog, MenuProductDialog } from '../modules/costing/pages/CostingDialogs'
-import { recipePreview, menuPreview, recipeInputSchema, type Recipe, type MenuProduct } from '../modules/costing/model/costing'
+import { costingReadiness, recipePreview, menuPreview, recipeInputSchema, type Recipe, type MenuProduct } from '../modules/costing/model/costing'
 import { hasAccess } from '../core/access/accessUtils'
 import { appNavigation } from '../core/navigation/appNavigation'
 
@@ -52,6 +52,23 @@ describe('costing calculations', () => {
     expect(value).toEqual({ missing: 1, complete: false, last: null, weighted: null, perLast: null, perWeighted: null })
   })
   it('treats a real zero purchase cost as complete', () => expect(recipePreview([{ quantityBase: 1, lastUnitCost: 0, weightedUnitCost: 0 }], 1)).toMatchObject({ complete: true, last: 0 }))
+  it('prioritizes readiness blockers without inventing costs', () => {
+    const unresolved = { unresolvedLineId: 'c1111111-4444-4444-8444-111111111111', inventoryItemId: itemId, itemName: 'Oil', baseUnit: 'MILLILITER' as const, itemStatus: 'ACTIVE' as const,
+      sourceLineKey: 'RK1', sourceQuantity: 3, sourceUnit: 'GRAM', notes: null, reason: 'UNIT_CONVERSION_REQUIRED' as const, costStatus: 'UNIT_CONVERSION_REQUIRED' as const }
+    const sub = { subrecipeId: recipeId, subrecipeName: 'Sauce', subrecipeCode: 'S1', quantity: null, unit: null, yieldQuantity: null, yieldUnit: null, notes: null,
+      childCostingComplete: false, childTotalLastCost: null, childTotalWeightedCost: null, lastLineCost: null, weightedLineCost: null, costStatus: 'MISSING_CHILD_YIELD' as const }
+    const blockedLine = { ...recipe.lines[0], costStatus: 'NO_PURCHASE_COST' as const, lastUnitCost: null, weightedUnitCost: null, lastLineCost: null, weightedLineCost: null }
+    const blockedA: Recipe = { ...recipe, id: 'c1111111-5555-4555-8555-111111111111', name: 'Blocked A', costingComplete: false, costStatus: 'INCOMPLETE',
+      lines: [blockedLine], unresolvedLines: [unresolved], subrecipeLines: [sub], missingCostItemCount: 3, missingDirectCostItemCount: 2, missingPurchaseCostItemCount: 1,
+      missingConversionItemCount: 1, missingSubrecipeCostCount: 1, unresolvedLineCount: 1, subrecipeLineCount: 1, totalLastCost: null, totalWeightedCost: null, costPerPortionLast: null, costPerPortionWeighted: null }
+    const blockedB: Recipe = { ...blockedA, id: 'c1111111-6666-4666-8666-111111111111', name: 'Blocked B', unresolvedLines: [], subrecipeLines: [],
+      missingCostItemCount: 1, missingDirectCostItemCount: 1, missingConversionItemCount: 0, missingSubrecipeCostCount: 0, unresolvedLineCount: 0, subrecipeLineCount: 0 }
+    const value = costingReadiness([recipe, blockedA, blockedB])
+    expect(value).toMatchObject({ totalRecipes: 3, readyRecipes: 1, incompleteRecipes: 2, missingPurchaseItemCount: 1, conversionBlockerCount: 1, subrecipeBlockerCount: 1 })
+    expect(value.missingPurchaseItems[0]).toMatchObject({ itemName: 'Meat', recipeCount: 2, lineCount: 2 })
+    const withPassive = costingReadiness([{ ...blockedA, status: 'PASSIVE' }, recipe])
+    expect(withPassive).toMatchObject({ totalRecipes: 1, readyRecipes: 1, incompleteRecipes: 0, missingPurchaseItemCount: 0, conversionBlockerCount: 0, subrecipeBlockerCount: 0 })
+  })
   it('calculates net sales, food cost, contribution and target reference without early rounding', () => {
     expect(menuPreview(120, 20, 7.5, 25)).toEqual({ net: 100, foodCostPct: 7.5, margin: 92.5, suggestedGross: 36 })
     expect(menuPreview(1, 18, .1, 30).net).toBeCloseTo(1 / 1.18, 12)
@@ -68,8 +85,11 @@ describe('costing calculations', () => {
   })
 })
 describe('costing read models', () => {
-  it('shows last/previous, weighted cost and price change; switches currency', async () => {
+  it('shows readiness first, then last/previous, weighted cost and price change; switches currency', async () => {
     const { user } = setup()
+    expect(await screen.findByRole('heading', { name: 'Maliyet Hazırlık Merkezi' })).toBeInTheDocument()
+    expect(screen.getByText('1 / 1 reçete hazır')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Alış Maliyetleri' }))
     expect(await screen.findByText('0,200000 TRY')).toBeInTheDocument()
     expect(screen.getAllByText('0,150000 TRY')).toHaveLength(2)
     expect(screen.getByText('+33,33')).toBeInTheDocument()
@@ -94,7 +114,7 @@ describe('costing read models', () => {
   })
   it('writer gets create and edit controls', async () => {
     tenant.context.permissions.push('food-service.costing.write')
-    const { user } = setup(); await screen.findByText('Meat')
+    const { user } = setup(); await screen.findByRole('heading', { name: 'Maliyet Hazırlık Merkezi' })
     await user.click(screen.getByRole('tab', { name: 'Reçeteler' }))
     expect(screen.getByRole('button', { name: 'Yeni Reçete' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Plate düzenle' }))

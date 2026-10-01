@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Pencil, Plus, RefreshCw } from 'lucide-react'
 import { useTenant } from '../../../shared/tenant/useTenant'
 import { hasAccess } from '../../../core/access/accessUtils'
 import { useInventoryCosts, useRecipeCosts, useMenuCosts } from '../queries/useCosting'
-import { costMoney, costNumber, sourceUnitLabel, subrecipeCostStatusLabel, type Recipe, type MenuProduct } from '../model/costing'
+import { costingReadiness, costMoney, costNumber, sourceUnitLabel, subrecipeCostStatusLabel, type Recipe, type MenuProduct } from '../model/costing'
 import { units } from '../../inventory/model/inventory'
 import { RecipeDialog, MenuProductDialog, MissingCost } from './CostingDialogs'
 import { OperatingProfitability } from './OperatingProfitability'
@@ -14,26 +15,69 @@ export function CostingPage() {
   const { tenantId } = useTenant()
   return <CostingContent key={tenantId} />
 }
+
+function CostingReadinessPanel({ recipes, canPurchase }: { recipes: Recipe[]; canPurchase: boolean }) {
+  const readiness = costingReadiness(recipes)
+  if (!readiness.totalRecipes) return <div className="costing-readiness"><h2>Maliyet Hazırlık Merkezi</h2><p>Henüz reçete yok.</p></div>
+
+  return <div className="costing-readiness">
+    <div className="costing-readiness-intro">
+      <div><h2>Maliyet Hazırlık Merkezi</h2><p>Gerçek maliyet oluşmadan ürün kârlılığı hesaplanmaz. Eksikler, en fazla reçeteyi etkileyenden başlayarak sıralanır.</p></div>
+      <strong>{readiness.readyRecipes} / {readiness.totalRecipes} reçete hazır</strong>
+    </div>
+    <dl className="costing-readiness-summary">
+      <div><dt>Hazırlık oranı</dt><dd>{costNumber(readiness.readinessPct, 1)}%</dd><small>{readiness.incompleteRecipes} reçete eksik</small></div>
+      <div><dt>Alış maliyeti bekleyen malzeme</dt><dd>{readiness.missingPurchaseItemCount}</dd><small>Gerçek satınalma verisi gerekli</small></div>
+      <div><dt>Birim dönüşümü bekleyen satır</dt><dd>{readiness.conversionBlockerCount}</dd><small>Tahmin yapılmaz</small></div>
+      <div><dt>Alt reçete engeli</dt><dd>{readiness.subrecipeBlockerCount}</dd><small>Kullanım / verim / alt maliyet</small></div>
+    </dl>
+
+    {readiness.incompleteRecipes === 0 ? <p className="costing-readiness-success" role="status">Tüm reçeteler maliyet hesabına hazır.</p> : null}
+
+    {readiness.missingPurchaseItems.length ? <section className="costing-readiness-section">
+      <div className="costing-record-heading"><div><h3>1. Alış maliyeti eksikleri</h3><p>Önce en çok reçeteyi bloke eden malzemeleri tamamlayın. Alış maliyetinin kaynağı satınalma / faturadır; burada manuel maliyet uydurulmaz.</p></div>{canPurchase ? <Link className="costing-action-link" to="/purchasing">Satınalma / Faturaya Git</Link> : null}</div>
+      <div className="costing-table-wrap"><table><caption>Etki sırasına göre alış maliyeti kuyruğu</caption><thead><tr><th>Malzeme</th><th>Baz birim</th><th>Etkilenen reçete</th><th>Eksik satır</th></tr></thead><tbody>
+        {readiness.missingPurchaseItems.map((item) => <tr key={item.inventoryItemId}><th scope="row">{item.itemName}</th><td>{units[item.baseUnit]}</td><td>{item.recipeCount}</td><td>{item.lineCount}</td></tr>)}
+      </tbody></table></div>
+    </section> : null}
+
+    {readiness.conversionBlockers.length ? <section className="costing-readiness-section">
+      <div className="costing-record-heading"><div><h3>2. Birim dönüşümü gereken satırlar</h3><p>Yoğunluk, adet ağırlığı veya benzeri gerçek dönüşüm verisi girilene kadar bu satırlar maliyete katılmaz.</p></div></div>
+      <div className="costing-table-wrap"><table><caption>Dönüşüm kuyruğu</caption><thead><tr><th>Reçete</th><th>Malzeme</th><th>Kaynak miktar</th><th>Stok baz birimi</th></tr></thead><tbody>
+        {readiness.conversionBlockers.map((line) => <tr key={`${line.recipeId}-${line.unresolvedLineId}`}><th scope="row">{line.recipeName}<small>{line.recipeCode}</small></th><td>{line.itemName}</td><td>{costNumber(line.sourceQuantity, 4)} {sourceUnitLabel(line.sourceUnit)}</td><td>{units[line.baseUnit]}</td></tr>)}
+      </tbody></table></div>
+    </section> : null}
+
+    {readiness.subrecipeBlockers.length ? <section className="costing-readiness-section">
+      <div className="costing-record-heading"><div><h3>3. Alt reçete engelleri</h3><p>Alt reçetenin kullanım miktarı, üretim verimi veya kendi maliyeti tamamlanmalıdır.</p></div></div>
+      <div className="costing-table-wrap"><table><caption>Alt reçete kuyruğu</caption><thead><tr><th>Ana reçete</th><th>Alt reçete</th><th>Durum</th></tr></thead><tbody>
+        {readiness.subrecipeBlockers.map((line, index) => <tr key={`${line.recipeId}-${line.subrecipeId}-${index}`}><th scope="row">{line.recipeName}<small>{line.recipeCode}</small></th><td>{line.subrecipeName}<small>{line.subrecipeCode}</small></td><td>{subrecipeCostStatusLabel(line.costStatus)}</td></tr>)}
+      </tbody></table></div>
+    </section> : null}
+  </div>
+}
+
 function CostingContent() {
   const { context } = useTenant()
   const canWrite = !!context && hasAccess(context, { requiredModule: 'food-service', requiredPermission: 'food-service.costing.write' })
-  const [tab, setTab] = useState<'purchase' | 'recipe' | 'menu' | 'period'>('purchase')
+  const canPurchase = !!context && hasAccess(context, { requiredModule: 'purchasing', requiredPermission: 'purchasing.read' })
+  const [tab, setTab] = useState<'readiness' | 'purchase' | 'recipe' | 'menu' | 'period'>('readiness')
   const [currency, setCurrency] = useState('TRY')
   const [location, setLocation] = useState('')
   const [dialog, setDialog] = useState<{ kind: 'recipe'; recipe?: Recipe } | { kind: 'menu'; product?: MenuProduct } | null>(null)
   const inventory = useInventoryCosts(currency, location), recipes = useRecipeCosts(location), menu = useMenuCosts(location)
-  const current = tab === 'purchase' ? inventory : tab === 'recipe' ? recipes : menu
+  const current = tab === 'purchase' ? inventory : tab === 'menu' ? menu : recipes
   return <section className="finance-page costing-page">
-    <div className="finance-heading"><div><span className="eyebrow">YÖNETİM</span><h1>Maliyet</h1><p>Net Alış Maliyeti · Purchase Cost Reference</p></div>
+    <div className="finance-heading"><div><span className="eyebrow">YÖNETİM</span><h1>Maliyet</h1><p>Gerçek maliyet · fiyatlandırma · ürün kârlılığı</p></div>
       {tab !== 'period' ? <button className="finance-refresh-button" disabled={current.isFetching} onClick={() => { void inventory.refetch(); void recipes.refetch(); void menu.refetch() }}><RefreshCw size={16} />Yenile</button> : null}</div>
-    <div className="costing-toolbar"><div role="tablist" aria-label="Maliyet bölümleri">{([['purchase', 'Alış Maliyetleri'], ['recipe', 'Reçeteler'], ['menu', 'Menü Kârlılığı'], ['period', 'Dönem Kârlılığı']] as const).map(([key, label]) => <button key={key} id={`costing-tab-${key}`} role="tab" aria-selected={tab === key} aria-controls="costing-panel" onClick={() => setTab(key)}>{label}</button>)}</div>
+    <div className="costing-toolbar"><div role="tablist" aria-label="Maliyet bölümleri">{([['readiness', 'Hazırlık Merkezi'], ['purchase', 'Alış Maliyetleri'], ['recipe', 'Reçeteler'], ['menu', 'Menü Kârlılığı'], ['period', 'Dönem Kârlılığı']] as const).map(([key, label]) => <button key={key} id={`costing-tab-${key}`} role="tab" aria-selected={tab === key} aria-controls="costing-panel" onClick={() => setTab(key)}>{label}</button>)}</div>
       {tab !== 'period' ? <label className="finance-dialog-field"><span>Lokasyon</span><select value={location} onChange={(e) => setLocation(e.target.value)}><option value="">Tüm lokasyonlar</option>{inventory.data?.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label> : null}
       {tab === 'purchase' ? <label className="finance-dialog-field"><span>Para birimi filtresi</span><input aria-label="Para birimi filtresi" maxLength={3} value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} /></label> : null}
       {canWrite && (tab === 'recipe' || tab === 'menu') ? <button className="finance-refresh-button" disabled={recipes.isPending || recipes.isError} onClick={() => setDialog({ kind: tab === 'recipe' ? 'recipe' : 'menu' })}><Plus size={16} />{tab === 'recipe' ? 'Yeni Reçete' : 'Yeni Menü Ürünü'}</button> : null}
     </div>
     <div role="tabpanel" id="costing-panel" aria-labelledby={`costing-tab-${tab}`}>
       {tab === 'period' ? <OperatingProfitability canWrite={canWrite} /> : tab === 'purchase' && !/^[A-Z]{3}$/.test(currency) ? <p role="status">Üç harfli para birimi girin.</p> : current.isPending ? <p role="status">Maliyetler yükleniyor...</p> : current.isError ? <div role="alert">{current.error.message}<button onClick={() => { void current.refetch() }}>Tekrar dene</button></div> : <>
-        {tab === 'purchase' ? <div className="costing-table-wrap"><table><caption>Alış Maliyetleri · {currency}</caption><thead><tr>{['Stok kartı', 'Baz birim', 'Son alış / baz birim', 'Önceki alış', 'Değişim %', 'Ağırlıklı Alış Maliyeti', 'Son tedarikçi', 'Son fatura tarihi'].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>
+        {tab === 'readiness' ? <CostingReadinessPanel recipes={recipes.data?.recipes ?? []} canPurchase={canPurchase} /> : tab === 'purchase' ? <div className="costing-table-wrap"><table><caption>Alış Maliyetleri · {currency}</caption><thead><tr>{['Stok kartı', 'Baz birim', 'Son alış / baz birim', 'Önceki alış', 'Değişim %', 'Ağırlıklı Alış Maliyeti', 'Son tedarikçi', 'Son fatura tarihi'].map((h) => <th key={h}>{h}</th>)}</tr></thead><tbody>
           {inventory.data?.items.map((i) => <tr key={i.id}><th scope="row">{i.name}<small>{i.sku}</small></th><td>{units[i.baseUnit]}</td>{i.costStatus === 'NO_PURCHASE_COST' ? <td colSpan={6}>Alış maliyeti yok</td> : <><td>{costMoney(i.lastPurchase?.unitCost ?? null, currency, 6)}</td><td>{costMoney(i.previousPurchase?.unitCost ?? null, currency, 6)}</td><td>{i.priceChangePct !== null && i.priceChangePct > 0 ? '+' : ''}{costNumber(i.priceChangePct)}</td><td>{costMoney(i.weightedPurchaseUnitCost, currency, 6)}</td><td>{i.lastPurchase?.supplierName}</td><td>{i.lastPurchase?.invoiceDate}<small>{i.lastPurchase?.invoiceNumber}</small></td></>}</tr>)}
           {!inventory.data?.items.length ? <tr><td colSpan={8}>Aktif stok kartı yok.</td></tr> : null}
         </tbody></table></div> : tab === 'recipe' ? <div className="costing-recipes">{recipes.data?.recipes.length ? recipes.data.recipes.map((r) => <article key={r.id} className="costing-recipe">

@@ -36,6 +36,78 @@ export const productSchema = z.object({ id: z.uuid(), name: z.string(), code: z.
   contributionMargin: nullableNumber, suggestedNetPrice: nullableNumber, suggestedGrossPrice: nullableNumber, targetDifferencePp: nullableNumber })
 export type MenuProduct = z.infer<typeof productSchema>
 export const productsSchema = z.object({ tenantId: z.uuid(), locationId: z.uuid().nullable(), products: z.array(productSchema) })
+
+export function costingReadiness(recipes: Recipe[]) {
+  const activeRecipes = recipes.filter((recipe) => recipe.status === 'ACTIVE')
+  const purchase = new Map<string, { inventoryItemId: string; itemName: string; baseUnit: Recipe['lines'][number]['baseUnit']; recipeIds: Set<string>; lineCount: number }>()
+  const conversionBlockers: Array<{ recipeId: string; recipeName: string; recipeCode: string | null; unresolvedLineId: string; itemName: string; sourceQuantity: number; sourceUnit: string; baseUnit: Recipe['unresolvedLines'][number]['baseUnit'] }> = []
+  const subrecipeBlockers: Array<{ recipeId: string; recipeName: string; recipeCode: string | null; subrecipeId: string; subrecipeName: string; subrecipeCode: string | null; costStatus: Recipe['subrecipeLines'][number]['costStatus'] }> = []
+
+  for (const recipe of activeRecipes) {
+    for (const line of recipe.lines) {
+      if (line.costStatus !== 'NO_PURCHASE_COST') continue
+      const current = purchase.get(line.inventoryItemId)
+      if (current) {
+        current.recipeIds.add(recipe.id)
+        current.lineCount += 1
+      } else {
+        purchase.set(line.inventoryItemId, {
+          inventoryItemId: line.inventoryItemId,
+          itemName: line.itemName,
+          baseUnit: line.baseUnit,
+          recipeIds: new Set([recipe.id]),
+          lineCount: 1,
+        })
+      }
+    }
+    for (const line of recipe.unresolvedLines) {
+      conversionBlockers.push({
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        recipeCode: recipe.code,
+        unresolvedLineId: line.unresolvedLineId,
+        itemName: line.itemName,
+        sourceQuantity: line.sourceQuantity,
+        sourceUnit: line.sourceUnit,
+        baseUnit: line.baseUnit,
+      })
+    }
+    for (const line of recipe.subrecipeLines) {
+      if (line.costStatus === 'READY') continue
+      subrecipeBlockers.push({
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        recipeCode: recipe.code,
+        subrecipeId: line.subrecipeId,
+        subrecipeName: line.subrecipeName,
+        subrecipeCode: line.subrecipeCode,
+        costStatus: line.costStatus,
+      })
+    }
+  }
+
+  const missingPurchaseItems = [...purchase.values()]
+    .map(({ recipeIds, ...item }) => ({ ...item, recipeCount: recipeIds.size }))
+    .sort((a, b) => b.recipeCount - a.recipeCount || b.lineCount - a.lineCount || a.itemName.localeCompare(b.itemName, 'tr'))
+
+  conversionBlockers.sort((a, b) => a.recipeName.localeCompare(b.recipeName, 'tr') || a.itemName.localeCompare(b.itemName, 'tr'))
+  subrecipeBlockers.sort((a, b) => a.recipeName.localeCompare(b.recipeName, 'tr') || a.subrecipeName.localeCompare(b.subrecipeName, 'tr'))
+
+  const readyRecipes = activeRecipes.filter((recipe) => recipe.costingComplete).length
+  const totalRecipes = activeRecipes.length
+  return {
+    totalRecipes,
+    readyRecipes,
+    incompleteRecipes: totalRecipes - readyRecipes,
+    readinessPct: totalRecipes === 0 ? 0 : readyRecipes / totalRecipes * 100,
+    missingPurchaseItems,
+    missingPurchaseItemCount: missingPurchaseItems.length,
+    conversionBlockers,
+    conversionBlockerCount: conversionBlockers.length,
+    subrecipeBlockers,
+    subrecipeBlockerCount: subrecipeBlockers.length,
+  }
+}
 const decimal = (digits: number, zero = false) => z.string().transform((v) => parseQuantity(v, zero, digits)).pipe(z.number())
 const commonInput = { name: z.string().trim().min(2).max(160), code: z.string().trim().max(100), category: z.string().trim().max(120), currencyCode: currency, status }
 export const recipeInputSchema = z.object({ ...commonInput, portions: decimal(4).pipe(z.number().lt(1e8)),
